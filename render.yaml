@@ -19,7 +19,5 @@ services:
       - path: /*
         name: Referrer-Policy
         value: strict-origin-when-cross-origin
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
+    # No catch-all rewrite: this is a single-document app with no deep links,
+    # so a rewrite could only ever shadow a real asset.
