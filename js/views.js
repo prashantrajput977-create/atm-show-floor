@@ -1741,7 +1741,9 @@ function digestText(date, teamWide) {
 
 function openWrap(date, auto) {
   const d = date && date !== 'all' ? date : (UI.nowInTz().date);
-  const teamWide = Store.isAdmin() || S.me?.role === 'leader';
+  /* Your wrap is your day. Only the admin gets the whole floor, so the numbers
+     on screen and the numbers in the message are always the same numbers. */
+  const teamWide = Store.isAdmin();
   const s = dayStats(d, S.meetings.filter(isMine));
   const txt = digestText(d, teamWide);
 
@@ -1771,11 +1773,9 @@ function openWrap(date, auto) {
 
       <div class="sec-h" style="margin-top:16px"><h2>Send the day on</h2></div>
       <pre class="digest">${UI.esc(txt)}</pre>`,
-    foot: `<button class="btn wa block" data-act="shareWrap" data-id="${d}">${I.whatsapp}Send on WhatsApp</button>
-      <div style="display:flex;gap:9px;margin-top:9px">
-        <button class="btn ghost" style="flex:1" data-act="copyWrap" data-id="${d}">${I.copy}Copy</button>
-        <button class="btn ghost" style="flex:1" data-x>Close</button>
-      </div>`,
+    foot: `<button class="btn wa" data-act="shareWrap" data-id="${d}">${I.whatsapp}WhatsApp</button>
+      <button class="btn ghost" data-act="copyWrap" data-id="${d}">${I.copy}Copy</button>
+      <button class="btn ghost" data-x>Close</button>`,
     onMount(b, f) { f.querySelector('[data-x]').onclick = () => UI.closeSheet(); }
   });
 }

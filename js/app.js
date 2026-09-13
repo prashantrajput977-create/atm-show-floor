@@ -444,10 +444,10 @@ document.addEventListener('click', async e => {
     wrap: () => Views.openWrap(id || UI.nowInTz().date),
     console: () => { V.tab = 'board'; V.boardPane = 'team'; Store.loadRoster().then(render); render(); renderDayRail(); window.scrollTo({ top: 0, behavior: 'smooth' }); },
     shareWrap: () => {
-      const txt = Views.digestText(id, Store.isAdmin() || S.me?.role === 'leader');
+      const txt = Views.digestText(id, Store.isAdmin());
       window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank', 'noopener');
     },
-    copyWrap: () => UI.copy(Views.digestText(id, Store.isAdmin() || S.me?.role === 'leader'), 'Day copied'),
+    copyWrap: () => UI.copy(Views.digestText(id, Store.isAdmin()), 'Day copied'),
     remindMe: async () => {
       try {
         if (!('Notification' in window)) return toast('This browser has no notifications. The in-app card still works.', { kind: 'warn' });
