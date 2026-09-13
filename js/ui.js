@@ -93,7 +93,9 @@ function dParts(ds) {
 function fmtDate(ds) { const p = dParts(ds); return `${p.dow} ${p.day} ${p.mon}`; }
 function ago(iso) {
   if (!iso) return '';
-  const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+  const t = typeof iso === 'number' ? iso : new Date(iso).getTime();
+  if (!isFinite(t)) return '';
+  const s = Math.max(0, (Date.now() - t) / 1000);
   if (s < 45) return 'just now';
   if (s < 3600) return Math.round(s / 60) + 'm ago';
   if (s < 86400) return Math.round(s / 3600) + 'h ago';
@@ -203,16 +205,6 @@ function emptyState(icon, title, msg, ...btns) {
         ).join('')}</div>`
       : ''}
   </div>`;
-}
-
-function ago(ms) {
-  const s = Math.max(0, Math.round((Date.now() - ms) / 1000));
-  if (s < 10) return 'just now';
-  if (s < 60) return s + ' seconds ago';
-  const m = Math.round(s / 60);
-  if (m < 60) return m + ' minute' + (m === 1 ? '' : 's') + ' ago';
-  const h = Math.round(m / 60);
-  return h + ' hour' + (h === 1 ? '' : 's') + ' ago';
 }
 
 function skeletons(n = 4) {
