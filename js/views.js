@@ -770,6 +770,7 @@ function feedRow(a) {
   const ic = a.kind === 'lead_scanned' ? 'card'
     : a.kind === 'meeting_added' ? 'plus'
     : a.kind === 'status' ? 'clock'
+    : a.kind === 'reset' || a.kind === 'event_reset' ? 'undo'
     : (OUT_MAP[a.kind?.replace('outcome_', '')]?.icon) || 'bolt';
   return `<div class="fr">
     <span class="ic ${cls}">${I[ic] || I.bolt}</span>

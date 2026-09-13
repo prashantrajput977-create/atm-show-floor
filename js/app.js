@@ -452,7 +452,13 @@ async function attachCam(deviceId) {
      mirror but confusing when you are lining up text, so only flip the preview */
   v.classList.toggle('mir', facing === 'user' || (!facing && camFacing === 'user'));
   const label = $('#camLbl');
-  if (label) label.textContent = track.label ? track.label.replace(/\s*\(.*\)$/, '') : 'Camera';
+  if (!label) return;
+  /* some devices report a raw hardware id instead of a name, which reads like
+     noise, so only trust a label that looks like something a person wrote */
+  const raw = (track.label || '').replace(/\s*\(.*\)$/, '').trim();
+  const human = raw && raw.length < 34 && /\s/.test(raw) && !/^[A-Za-z0-9+/=_-]{20,}$/.test(raw);
+  label.textContent = human ? raw
+    : (facing === 'user' || (!facing && camFacing === 'user')) ? 'Front camera' : 'Back camera';
 }
 
 async function openCamera() {
