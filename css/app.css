@@ -920,12 +920,7 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
     background: var(--tx); color: var(--ink);
     padding: 54px 54px 46px;
   }
-  /* one oversized brand mark, bled off the corner, at a whisper */
-  .as-wm {
-    position: absolute; right: -7%; bottom: 16%; width: 40%; color: #fff;
-    opacity: .03; pointer-events: none; line-height: 0;
-  }
-  .as-wm svg { width: 100%; height: auto }
+  .as-wm { display: none }
 
   .as-brand { color: #fff; line-height: 0 }
   .as-brand svg { height: 27px; width: auto; max-width: none }
