@@ -229,6 +229,13 @@ function viewAgenda() {
   return viewToday();
 }
 
+/* Whatever the booker typed in the sheet is the only context a rep gets
+   before they shake a hand. It does not sit in a detail row. */
+function ctxNote(m, cls = '') {
+  const c = (m.comments || '').trim();
+  return c ? `<span class="ctx ${cls}">${I.info}<span>${UI.esc(c)}</span></span>` : '';
+}
+
 function nowCard(m, label) {
   const t = UI.fmtTimeStr(m.meeting_time);
   const own = UI.memberById(m.owner_id), rep = UI.memberById(m.rep_id);
@@ -236,6 +243,7 @@ function nowCard(m, label) {
     <div class="lbl"><span class="bl"></span>${UI.esc(label)}</div>
     <h3>${UI.esc(m.company_name)}</h3>
     <div class="sub">${UI.esc([t, m.prospect_name, m.geo_region].filter(Boolean).join(' · '))}</div>
+    ${ctxNote(m, 'big')}
     <div style="display:flex;gap:5px;margin-top:9px;flex-wrap:wrap;align-items:center">
       ${own ? UI.avatar(own, 'xs') : ''}${rep && rep.user_id !== own?.user_id ? UI.avatar(rep, 'xs') : ''}
       ${m.category ? `<span class="tag">${UI.esc(m.category)}</span>` : ''}
@@ -288,6 +296,7 @@ function meetingCard(m) {
         ${m.prospect_name || m.designation ? `<span class="who">${UI.esc([m.prospect_name, m.designation].filter(Boolean).join(' · '))}</span>` : ''}
         ${facts.length ? `<span class="fx">${facts.map(UI.esc).join('<i>·</i>')}</span>` : ''}
       </span>` : ''}
+      ${ctxNote(m)}
     </span>
   </button>`;
 }
@@ -973,6 +982,11 @@ function openMeeting(id) {
       ${liveInfo(m) ? '<span class="tag hot">Live now</span>' : ''}
     </div>
 
+    ${(m.comments || '').trim() ? `<div class="ctxbox">
+      <span class="ci">${I.info}</span>
+      <span class="cb"><span class="ck">From the booking sheet</span><span class="cv">${UI.esc(m.comments)}</span></span>
+    </div>` : ''}
+
     <div class="sec-h" style="margin-top:0"><h2>Did they turn up?</h2></div>
     <div class="attrow">
       ${ATTEND.map(a => `<button data-act="attend" data-id="${m.id}" data-v="${a.v}"
@@ -1000,7 +1014,6 @@ function openMeeting(id) {
       ${row('globe', 'Domain', m.domain ? UI.esc(m.domain) : '')}
       ${row('pin', 'Where', m.location ? UI.esc(m.location) : '')}
       ${row('users', 'On our side', `${own ? UI.esc(own.short_name) : UI.esc(m.owner_name || '—')}${rep && rep.user_id !== own?.user_id ? ' with ' + UI.esc(rep.short_name) : (m.rep_name && m.rep_name !== m.owner_name ? ' with ' + UI.esc(m.rep_name) : '')}`)}
-      ${row('note', 'Sheet comments', m.comments ? UI.esc(m.comments) : '')}
       ${row('note', 'Outcome notes', m.outcome_notes ? UI.esc(m.outcome_notes) : '')}
       ${row('arrowRight', 'Next step', m.next_step ? UI.esc(m.next_step) + (m.next_step_due ? ` <span class="mono" style="color:var(--tx-3)">${UI.esc(m.next_step_due)}</span>` : '') : '')}
       ${row('dollar', 'Deal value', m.deal_value_usd ? UI.esc(UI.money(m.deal_value_usd)) : '')}

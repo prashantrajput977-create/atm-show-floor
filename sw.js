@@ -3,29 +3,29 @@
    Fonts and Tesseract are cached on first use.
    Supabase traffic is never cached. */
 
-const V = 'sf-v52';
+const V = 'sf-v53';
 const SHELL = 'shell-' + V;
 const RUNTIME = 'rt-' + V;
 
 const CORE = [
   './',
   './index.html',
-  './css/app.css?b=52',
-  './js/vendor/supabase.js?b=52',
-  './js/brand.js?b=52',
-  './js/config.js?b=52',
-  './js/store.js?b=52',
-  './js/ocr.js?b=52',
-  './js/ui.js?b=52',
-  './js/views.js?b=52',
-  './js/app.js?b=52',
+  './css/app.css?b=53',
+  './js/vendor/supabase.js?b=53',
+  './js/brand.js?b=53',
+  './js/config.js?b=53',
+  './js/store.js?b=53',
+  './js/ocr.js?b=53',
+  './js/ui.js?b=53',
+  './js/views.js?b=53',
+  './js/app.js?b=53',
   './manifest.json',
-  './brand/word.svg?b=52',
-  './brand/dubai-rail.webp?b=52',
-  './icons/favicon.svg?b=52',
-  './icons/icon-192.png?b=52',
+  './brand/word.svg?b=53',
+  './brand/dubai-rail.webp?b=53',
+  './icons/favicon.svg?b=53',
+  './icons/icon-192.png?b=53',
   './icons/icon-512.png',
-  './icons/apple-touch-icon.png?b=52'
+  './icons/apple-touch-icon.png?b=53'
 ];
 
 self.addEventListener('install', e => {
