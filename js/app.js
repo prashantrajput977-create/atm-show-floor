@@ -513,7 +513,7 @@ async function openVoice(table, id) {
     return toast('This browser cannot record audio. Use Chrome or Safari.', { kind: 'bad' });
   }
 
-  let blob = null, result = null, phase = 'idle';
+  let blob = null, result = null, phase = 'idle', failed = false;
 
   openSheet({
     title: 'Record what happened', sub: who,
@@ -546,7 +546,10 @@ async function openVoice(table, id) {
           save.disabled = true;
         } else {
           const t = result?.transcript || '';
-          const warn = !result ? `<div class="ocrbar" data-s="warn">${I.wifiOff}<span>Saved the audio. The write-up will run when you are back online.</span></div>` : '';
+          const warn = result ? ''
+            : failed
+              ? `<div class="ocrbar" data-s="warn">${I.alert}<span>Could not write it up. Save it, then tap Write it up on the record to try again.</span></div>`
+              : `<div class="ocrbar" data-s="warn">${I.wifiOff}<span>Saved the audio. The write-up will run when you are back online.</span></div>`;
           body.innerHTML = `${warn}
             <audio class="vcaudio" controls src="${URL.createObjectURL(blob)}"></audio>
             ${result?.summary ? `<div class="vcsum">${I.sparkle}<span>${UI.esc(result.summary)}</span></div>` : ''}
@@ -556,7 +559,7 @@ async function openVoice(table, id) {
             </div>
             ${result?.next_step ? `<label class="chk"><input type="checkbox" id="vcNs" checked><span><b>Set the next step</b><i>${UI.esc(result.next_step)}</i></span></label>` : ''}
             <button class="btn ghost block" id="vcRedo" style="margin-top:4px">${I.refresh}Record again</button>`;
-          body.querySelector('#vcRedo').onclick = () => { blob = null; result = null; phase = 'idle'; paint(); };
+  body.querySelector('#vcRedo').onclick = () => { blob = null; result = null; failed = false; phase = 'idle'; paint(); };
           save.disabled = false;
         }
       };
@@ -573,7 +576,7 @@ async function openVoice(table, id) {
         recChunks = [];
         recorder = new MediaRecorder(recStream, mime ? { mimeType: mime, audioBitsPerSecond: 64000 } : undefined);
         recorder.ondataavailable = e => { if (e.data && e.data.size) recChunks.push(e.data); };
-        recorder.onstop = () => finish(mime);
+        recorder.onstop = () => finish(recorder?.mimeType || mime);
         recorder.start(500);
         recStart = Date.now();
         phase = 'rec'; paint();
@@ -624,13 +627,14 @@ async function openVoice(table, id) {
         blob = new Blob(recChunks, { type: mime || 'audio/webm' });
         blob.__ms = ms;
         if (blob.size < 1200) { toast('That was too short', { kind: 'bad' }); phase = 'idle'; return paint(); }
+        failed = false;
         if (!navigator.onLine) { result = null; phase = 'done'; return paint(); }
         /* one quiet retry: a cold function or a dropped packet should not cost the rep their note */
         try { result = await Store.transcribe(blob); }
         catch (e1) {
           await new Promise(r => setTimeout(r, 900));
           try { result = await Store.transcribe(blob); }
-          catch (e2) { result = null; toast(String(e2.message || e2).slice(0, 90), { kind: 'bad' }); }
+          catch (e2) { result = null; failed = true; toast(String(e2.message || e2).slice(0, 90), { kind: 'bad' }); }
         }
         phase = 'done'; paint();
       }
