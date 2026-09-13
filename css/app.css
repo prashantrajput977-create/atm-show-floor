@@ -1152,7 +1152,7 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
 
   .authpane { flex: 1 1 48%; background: var(--ink); padding: 48px 40px }
   .authcard { max-width: 372px }
-  .ac-brand, .ac-lede { display: none }
+  .ac-brand, .ac-name, .ac-lede { display: none }
   .ac-h { display: block }
   .ac-h h2 { margin: 0; font-size: 25px; font-weight: 750; letter-spacing: -.032em; line-height: 1.1 }
   .ac-h p { margin: 7px 0 0; font-size: 13.5px; color: var(--tx-2) }
