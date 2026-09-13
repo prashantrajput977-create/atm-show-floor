@@ -936,7 +936,7 @@ function viewMe() {
       <button class="btn block" data-act="addMeeting">${I.plus}Add a walk-in meeting</button>
       <button class="btn block" data-act="addEvent">${I.calendar}Create a new event</button>
       <button class="btn block" data-act="export">${I.download}Export to CSV</button>
-      ${installed ? '' : `<button class="btn primary block" data-act="install">${I.home}Add to home screen</button>`}
+      ${installed ? '' : `<button class="btn primary block" data-act="install">${I.home}${window.matchMedia('(min-width: 1000px)').matches ? 'Install this app' : 'Add to home screen'}</button>`}
       <button class="btn ghost block" data-act="refresh">${I.refresh}Refresh from server</button>      ${me.role !== 'rep' ? `<button class="btn danger block" data-act="resetEvent">${I.undo}Reset the event records</button>` : ''}
     </div>
   </div>
