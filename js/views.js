@@ -179,7 +179,7 @@ function viewToday() {
         html += `<div class="slot-h${isNowSlot ? ' now' : ''}">
           <span class="t">${UI.esc(sl)}</span><span class="ln"></span>
           ${isNowSlot ? '<span class="live">LIVE</span>' : ''}
-        </div><div class="sheet">`;
+        </div><div class="slotsheet">`;
       }
       html += meetingCard(m);
     });
