@@ -64,15 +64,18 @@ self.addEventListener('fetch', e => {
 
   const sameOrigin = url.origin === self.location.origin;
 
-  /* app files: cache first, revalidate quietly */
+  /* app files: race the network against the cache so a fresh deploy is picked up
+     immediately on good signal, and a weak connection still opens instantly */
   if (sameOrigin) {
     e.respondWith(
       caches.match(req).then(hit => {
         const net = fetch(req).then(r => {
           if (r && r.ok) caches.open(SHELL).then(c => c.put(req, r.clone())).catch(() => {});
           return r;
-        }).catch(() => hit);
-        return hit || net;
+        });
+        if (!hit) return net;
+        const slow = new Promise(res => setTimeout(() => res(hit), 2500));
+        return Promise.race([net.catch(() => hit), slow]);
       })
     );
     return;
