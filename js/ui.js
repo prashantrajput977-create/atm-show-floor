@@ -205,6 +205,16 @@ function emptyState(icon, title, msg, ...btns) {
   </div>`;
 }
 
+function ago(ms) {
+  const s = Math.max(0, Math.round((Date.now() - ms) / 1000));
+  if (s < 10) return 'just now';
+  if (s < 60) return s + ' seconds ago';
+  const m = Math.round(s / 60);
+  if (m < 60) return m + ' minute' + (m === 1 ? '' : 's') + ' ago';
+  const h = Math.round(m / 60);
+  return h + ' hour' + (h === 1 ? '' : 's') + ' ago';
+}
+
 function skeletons(n = 4) {
   return Array.from({ length: n }, () => `<div class="skel-card">
     <div class="skel" style="width:44px;height:34px"></div>
@@ -232,5 +242,5 @@ window.UI = {
   $, $$, esc, h, avatar, initials, hueOf, memberByName, memberById,
   activeEvent, evTz, nowInTz, toMin, fmtTime, fmtTimeStr, slotOf, dParts, fmtDate, ago,
   toast, openSheet, closeSheet, confirmSheet, tagFor, money, copy, buzz,
-  emptyState, skeletons, debounce
+  emptyState, skeletons, debounce, ago
 };

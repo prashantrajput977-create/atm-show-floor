@@ -799,6 +799,10 @@ function viewMe() {
         <span class="dv"><span class="k">Connection</span><span class="v">${S.net === 'offline' ? 'Offline, work is saved on device' : S.pending ? S.pending + ' change' + (S.pending === 1 ? '' : 's') + ' syncing' : 'Live and in sync'}</span></span></div>
       <div class="drow"><span class="di">${I.sparkle}</span>
         <span class="dv"><span class="k">AI card reading</span><span class="v ${S.ocrConfigured === false ? 'mut' : ''}">${S.ocrConfigured === false ? 'Not switched on, using on-device' : 'Active'}</span></span></div>
+      <div class="drow"><span class="di">${I.clock}</span>
+        <span class="dv"><span class="k">Last refreshed</span><span class="v">${S.syncedAt ? UI.ago(S.syncedAt) : 'not yet'}</span></span></div>
+      <div class="drow"><span class="di">${I.info}</span>
+        <span class="dv"><span class="k">Build</span><span class="v mono">${window.BUILD || '?'}</span></span></div>
     </div>
   </div>
 

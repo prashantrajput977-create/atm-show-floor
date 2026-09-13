@@ -72,6 +72,13 @@ async function enterApp() {
   Store.ocrCheck().then(() => { if (V.tab === 'scan' || V.tab === 'me') render(); });
   Store.flush();
   refreshCounters();
+  /* If the first load came back empty on a bad link, retry rather than sit there
+     looking like the schedule is gone. */
+  let tries = 0;
+  const watchdog = setInterval(() => {
+    if (++tries > 4 || S.meetings.length || !navigator.onLine) return clearInterval(watchdog);
+    Store.loadAll({ fromCache: false });
+  }, 5000);
 }
 
 function paintMe() {
@@ -147,6 +154,7 @@ $('#li_pass').addEventListener('input', () => $('#li_pass').classList.remove('er
 /* ---------------- shell chrome ---------------- */
 $$('.tab').forEach(t => t.onclick = () => {
   V.tab = t.dataset.t;
+  Store.resume();   /* a tap is a good moment to check the data is still current */
   if (V.tab === 'leads') V.q = V.q || '';
   /* All days parks V.day on 'all', so coming back to Today must restore the date */
   if (V.tab === 'today' && V.day === 'all') V.day = UI.nowInTz().date;
@@ -296,6 +304,50 @@ document.addEventListener('input', UI.debounce(e => {
     if (n) { n.focus(); try { n.setSelectionRange(sel, sel); } catch (x) {} }
   }
 }, 260));
+
+/* ---------------- pull to refresh ---------------- */
+/* Reaching for a browser reload is a tell that the app looked stale. Give the
+   thumb the gesture it expects and refresh the data in place instead. */
+(function pullToRefresh() {
+  const el = document.createElement('div');
+  el.className = 'ptr'; el.innerHTML = `<span class="ptr-s"></span>`;
+  document.body.appendChild(el);
+  let y0 = null, dy = 0, armed = false, busy = false;
+  const TRIG = 72;
+  const at_top = () => (window.scrollY || document.documentElement.scrollTop) <= 1;
+
+  window.addEventListener('touchstart', e => {
+    if (busy || !at_top() || e.touches.length !== 1 || !$('#sheet').hidden) return;
+    y0 = e.touches[0].clientY; dy = 0; armed = true;
+  }, { passive: true });
+
+  window.addEventListener('touchmove', e => {
+    if (!armed || y0 === null) return;
+    dy = e.touches[0].clientY - y0;
+    if (dy <= 0) { el.style.transform = ''; el.classList.remove('on', 'ready'); return; }
+    const d = Math.min(dy * .5, 86);
+    el.style.transform = `translate(-50%, ${d}px)`;
+    el.classList.add('on');
+    el.classList.toggle('ready', dy > TRIG);
+  }, { passive: true });
+
+  window.addEventListener('touchend', async () => {
+    if (!armed) return;
+    armed = false;
+    const go = dy > TRIG;
+    dy = 0;
+    if (!go) { el.style.transform = ''; el.classList.remove('on', 'ready'); return; }
+    busy = true;
+    el.classList.add('spin');
+    el.style.transform = 'translate(-50%, 54px)';
+    UI.buzz(10);
+    try { await Store.resume(true); } catch (_) {}
+    await new Promise(r => setTimeout(r, 260));
+    el.classList.remove('on', 'ready', 'spin');
+    el.style.transform = '';
+    busy = false;
+  }, { passive: true });
+})();
 
 /* ---------------- scan flow ---------------- */
 ['#camPick', '#filePick'].forEach(sel => {

@@ -1305,3 +1305,22 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
 @media (min-width: 1000px) and (min-height: 640px) {
   .sheet { max-width: 560px }
 }
+
+/* ---------------- pull to refresh ---------------- */
+.ptr {
+  position: fixed; top: calc(var(--sat) + 6px); left: 50%; z-index: 40;
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--surf); border: 1px solid var(--ctl-edge); box-shadow: var(--sh-2);
+  display: grid; place-items: center; pointer-events: none;
+  opacity: 0; transform: translate(-50%, 0);
+  transition: opacity .16s ease, transform .22s cubic-bezier(.2, .8, .3, 1);
+}
+.ptr.on { opacity: 1 }
+.ptr-s {
+  width: 13px; height: 13px; border-radius: 50%;
+  border: 2px solid var(--line-2); border-top-color: var(--tx-3);
+  transition: border-color .16s;
+}
+.ptr.ready .ptr-s { border-color: var(--brand-dim); border-top-color: var(--brand) }
+.ptr.spin .ptr-s { border-color: var(--brand-dim); border-top-color: var(--brand); animation: spin .62s linear infinite }
+@media (min-width: 1000px) { .ptr { display: none } }
