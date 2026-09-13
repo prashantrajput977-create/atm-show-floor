@@ -475,8 +475,8 @@ function viewBoard() {
   </div>
 
   <div class="kpis">
-    <div class="kpi brand"><div class="k">Meetings</div><div class="v tnum">${mtgs.length}</div><div class="d">${logged.length} called, ${mtgs.length - logged.length} open</div></div>
-    <div class="kpi deal"><div class="k">Deals created</div><div class="v tnum">${deals.length}</div><div class="d">${dealVal ? UI.money(dealVal) + ' called' : 'add value on the call'}</div></div>
+    <div class="kpi brand"><div class="k">Meetings</div><div class="v tnum">${mtgs.length}</div><div class="d">${logged.length} logged, ${mtgs.length - logged.length} open</div></div>
+    <div class="kpi deal"><div class="k">Deals created</div><div class="v tnum">${deals.length}</div><div class="d">${dealVal ? UI.money(dealVal) + ' in play' : 'add a value when you log one'}</div></div>
     <div class="kpi hot"><div class="k">Still in play</div><div class="v tnum">${open.length}</div><div class="d">${openVal ? UI.money(openVal) + ' behind them' : 'future and nurture'}</div></div>
     <div class="kpi bad"><div class="k">Closed out</div><div class="v tnum">${dropped.length + missed.length}</div><div class="d">${dropped.length} dropped, ${missed.length} no show</div></div>
   </div>
@@ -552,7 +552,7 @@ function ledgerBlock(mtgs, logged) {
   return `<div class="sec">
     <div class="sec-h">
       <h2>Outcome ledger</h2>
-      <span class="count">${logged.length}/${mtgs.length} called</span>
+      <span class="count">${logged.length}/${mtgs.length} logged</span>
     </div>
     ${logged.length ? `<div class="stackbar" aria-hidden="true">
       ${rowsFor.filter(r => r.n).map(r => `<i class="t-${r.o.tone}" style="width:${r.n / T * 100}%" title="${r.o.label}"></i>`).join('')}
@@ -579,7 +579,7 @@ function dealsBlock(deals) {
   if (!deals.length) {
     return `<div class="sec">
       <div class="sec-h"><h2>Deals created</h2></div>
-      <div class="card"><div class="hint" style="padding:16px;text-align:center">No deal called yet. The moment someone logs one it lands here with the company, the owner and where it came from.</div></div>
+      <div class="card"><div class="hint" style="padding:16px;text-align:center">No deal logged yet. The moment someone logs one it lands here with the company, the owner and where it came from.</div></div>
     </div>`;
   }
   const sorted = [...deals].sort((a, b) => (Number(b.deal_value_usd) || 0) - (Number(a.deal_value_usd) || 0));
@@ -620,7 +620,7 @@ function sourceBlock(mtgs, leads) {
     <div class="card srcs">
       <div class="srow head">
         <span class="s-1">Route</span>
-        <span class="s-n">Total</span><span class="s-n">Called</span>
+        <span class="s-n">Total</span><span class="s-n">Logged</span>
         <span class="s-n">Deals</span><span class="s-n">In play</span>
       </div>
       ${rows.map(r => `<div class="srow">
@@ -854,7 +854,7 @@ function openMeeting(id) {
       ${row('note', 'Sheet comments', m.comments ? UI.esc(m.comments) : '')}
       ${row('note', 'Outcome notes', m.outcome_notes ? UI.esc(m.outcome_notes) : '')}
       ${row('arrowRight', 'Next step', m.next_step ? UI.esc(m.next_step) + (m.next_step_due ? ` <span class="mono" style="color:var(--tx-3)">${UI.esc(m.next_step_due)}</span>` : '') : '')}
-      ${row('dollar', 'Value called', m.deal_value_usd ? UI.esc(UI.money(m.deal_value_usd)) : '')}
+      ${row('dollar', 'Deal value', m.deal_value_usd ? UI.esc(UI.money(m.deal_value_usd)) : '')}
     </div>
 
     <div class="sec-h"><h2>Cards from this meeting</h2><span class="count">${ls.length}</span></div>
