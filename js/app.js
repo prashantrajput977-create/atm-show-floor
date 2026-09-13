@@ -332,14 +332,12 @@ function openReview(res, mtgId) {
     ${F('r_name', 'Full name', f.full_name, 'autocapitalize="words" placeholder="Who you met"')}
     ${F('r_title', 'Job title', f.designation)}
     ${F('r_co', 'Company', f.company, 'autocapitalize="words"')}
+    ${F('r_email', 'Email', f.email, 'type="email" inputmode="email" autocapitalize="none" spellcheck="false"')}
     <div class="grid2">
-      ${F('r_email', 'Email', f.email, 'type="email" inputmode="email" autocapitalize="none" spellcheck="false"')}
       ${F('r_phone', 'Phone', f.phone, 'type="tel" inputmode="tel"')}
-    </div>
-    <div class="grid2">
       ${F('r_phone2', 'Second number', f.phone_2, 'type="tel" inputmode="tel"')}
-      ${F('r_web', 'Website', f.website, 'autocapitalize="none" spellcheck="false"')}
     </div>
+    ${F('r_web', 'Website', f.website, 'autocapitalize="none" spellcheck="false"')}
     <div class="field">
       <label for="r_region">Region</label>
       <select class="sel" id="r_region"><option value="">—</option>

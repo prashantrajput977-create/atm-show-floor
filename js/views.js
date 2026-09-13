@@ -749,8 +749,9 @@ function openEditLead(id) {
     ${F('e_name', 'Full name', l.full_name, 'autocapitalize="words"')}
     ${F('e_title', 'Job title', l.designation)}
     ${F('e_co', 'Company', l.company, 'autocapitalize="words"')}
-    <div class="grid2">${F('e_email', 'Email', l.email, 'type="email" inputmode="email" autocapitalize="none" spellcheck="false"')}${F('e_phone', 'Phone', l.phone, 'type="tel" inputmode="tel"')}</div>
-    <div class="grid2">${F('e_phone2', 'Second number', l.phone_2, 'type="tel" inputmode="tel"')}${F('e_web', 'Website', l.website, 'autocapitalize="none" spellcheck="false"')}</div>
+    ${F('e_email', 'Email', l.email, 'type="email" inputmode="email" autocapitalize="none" spellcheck="false"')}
+    <div class="grid2">${F('e_phone', 'Phone', l.phone, 'type="tel" inputmode="tel"')}${F('e_phone2', 'Second number', l.phone_2, 'type="tel" inputmode="tel"')}</div>
+    ${F('e_web', 'Website', l.website, 'autocapitalize="none" spellcheck="false"')}
     ${F('e_li', 'LinkedIn', l.linkedin, 'autocapitalize="none" spellcheck="false"')}
     ${SEL('e_region', 'Region', l.geo_region, REGIONS)}
     ${F('e_addr', 'Address', l.address)}
