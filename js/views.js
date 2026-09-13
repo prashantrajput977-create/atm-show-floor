@@ -984,7 +984,7 @@ function openMeeting(id) {
 
     ${(m.comments || '').trim() ? `<div class="ctxbox">
       <span class="ci">${I.info}</span>
-      <span class="cb"><span class="ck">From the booking sheet</span><span class="cv">${UI.esc(m.comments)}</span></span>
+      <span class="cv">${UI.esc(m.comments)}</span>
     </div>` : ''}
 
     <div class="sec-h" style="margin-top:0"><h2>Did they turn up?</h2></div>

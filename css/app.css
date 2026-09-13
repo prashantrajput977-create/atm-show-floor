@@ -652,18 +652,16 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
 .ctx.big > span { white-space: normal }
 
 .ctxbox {
-  display: flex; gap: 9px; align-items: flex-start; margin: 0 0 15px;
-  padding: 11px 13px; border-radius: var(--r);
-  background: var(--hot-dim); border: 1px solid rgba(181, 115, 11, .22);
+  display: flex; gap: 10px; align-items: center; margin: 0 0 15px;
+  padding: 13px 15px; border-radius: var(--r);
+  background: var(--hot-dim); border: 1px solid rgba(181, 115, 11, .24);
 }
-.ctxbox .ci { flex: none; line-height: 0; color: var(--hot); padding-top: 1px }
-.ctxbox .ci .ic { width: 15px; height: 15px }
-.ctxbox .cb { display: flex; flex-direction: column; gap: 3px; min-width: 0 }
-.ctxbox .ck {
-  font-size: 9px; font-weight: 700; letter-spacing: .1em;
-  text-transform: uppercase; color: var(--hot);
+.ctxbox .ci { flex: none; line-height: 0; color: var(--hot) }
+.ctxbox .ci .ic { width: 17px; height: 17px }
+.ctxbox .cv {
+  min-width: 0; font-size: 16.5px; font-weight: 700; letter-spacing: -.012em;
+  line-height: 1.3; color: #5E3B06; word-break: break-word;
 }
-.ctxbox .cv { font-size: 14px; line-height: 1.4; color: #5E3B06; word-break: break-word }
 
 .statedot { width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--line-2) }
 .statedot.met { background: var(--deal) }
