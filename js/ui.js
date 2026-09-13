@@ -204,7 +204,6 @@ function emptyState(icon, title, msg, ...btns) {
           `<button class="btn ${i ? 'ghost' : 'primary'}" data-act="${esc(b.act)}">${I[b.icon] || ''}${esc(b.label)}</button>`
         ).join('')}</div>`
       : ''}
-    <p class="empty-pull">${I.refresh}Expecting something here? Pull down to refresh, or <button class="lnk" data-act="refresh">reload now</button>.</p>
   </div>`;
 }
 

@@ -464,18 +464,6 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
 .empty .btn { margin-top: 16px }
 .empty-acts { margin-top: 18px }
 .empty-acts .btn { margin-top: 0 }
-/* the last resort when a screen looks emptier than it should */
-.empty-pull {
-  display: flex; align-items: center; justify-content: center; gap: 6px;
-  flex-wrap: wrap; max-width: 36ch; margin: 20px auto 0 !important;
-  font-size: 12px !important; color: var(--tx-3);
-}
-.empty-pull svg { flex: none; width: 13px; height: 13px; color: var(--tx-3); }
-.lnk {
-  padding: 0; border: 0; background: none; color: var(--brand);
-  font: inherit; text-decoration: underline; text-underline-offset: 2px; cursor: pointer;
-}
-.lnk:hover { color: var(--brand-2); }
 
 .skel { border-radius: 7px; background: linear-gradient(90deg, var(--surf-2) 25%, var(--surf-3) 50%, var(--surf-2) 75%); background-size: 200% 100%; animation: shim 1.3s linear infinite }
 @keyframes shim { to { background-position: -200% 0 } }
