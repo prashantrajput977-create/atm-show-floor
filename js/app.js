@@ -231,6 +231,59 @@ document.addEventListener('click', async e => {
       location.reload();
     },
     lead: () => Views.openLead(id),
+    voice: () => openVoice(el.dataset.tb || 'ev_meetings', id),
+    selfie: () => openSelfie(el.dataset.tb || 'ev_meetings', id),
+    wa: () => openWhatsApp(el.dataset.tb || 'ev_meetings', id),
+    playVoice: async () => {
+      const tb = el.dataset.tb || 'ev_meetings';
+      const row = (tb === 'ev_leads' ? S.leads : S.meetings).find(r => r.id === id);
+      const url = await Store.thumb(row?.voice_note_path);
+      if (!url) return toast('Audio is still uploading', { kind: 'bad' });
+      const a = el.closest('.vnote')?.querySelector('audio');
+      if (a) { a.src = url; a.hidden = false; a.play().catch(() => {}); el.remove(); }
+    },
+    retranscribe: async () => {
+      const tb = el.dataset.tb || 'ev_leads';
+      const row = (tb === 'ev_leads' ? S.leads : S.meetings).find(r => r.id === id);
+      const url = await Store.thumb(row?.voice_note_path);
+      if (!url) return toast('Audio has not finished uploading', { kind: 'bad' });
+      toast('Writing up the note');
+      try {
+        const blob = await (await fetch(url)).blob();
+        const r = await Store.transcribe(blob);
+        const patch = { voice_transcript: r.transcript || null, updated_at: new Date().toISOString() };
+        if (r.next_step && !row.next_step) patch.next_step = r.next_step;
+        if (tb === 'ev_leads') await Store.updateLead(id, patch); else await Store.updateMeeting(id, patch);
+        toast('Note written up', { kind: 'ok' }); render();
+        if (tb === 'ev_leads') Views.openLead(id); else Views.openMeeting(id);
+      } catch (e) { toast(String(e.message || e).slice(0, 90), { kind: 'bad' }); }
+    },
+    delVoice: async () => {
+      const tb = el.dataset.tb || 'ev_meetings';
+      const ok = await UI.confirmSheet({ title: 'Delete this voice note?', danger: true, ok: 'Delete',
+        body: `<p class="hint" style="margin:0">The recording and the write-up both go. This cannot be undone.</p>` });
+      if (!ok) return;
+      await Store.clearMedia('voice', tb, id);
+      toast('Voice note deleted'); render();
+      if (tb === 'ev_leads') Views.openLead(id); else Views.openMeeting(id);
+    },
+    delSelfie: async () => {
+      const tb = el.dataset.tb || 'ev_meetings';
+      const ok = await UI.confirmSheet({ title: 'Delete this photo?', danger: true, ok: 'Delete',
+        body: `<p class="hint" style="margin:0">This cannot be undone.</p>` });
+      if (!ok) return;
+      await Store.clearMedia('selfie', tb, id);
+      toast('Photo deleted'); render();
+      if (tb === 'ev_leads') Views.openLead(id); else Views.openMeeting(id);
+    },
+    zoom: async () => {
+      const url = await Store.thumb(el.dataset.p) || el.dataset.p;
+      if (!url) return;
+      openSheet({ title: 'Photo', sub: el.dataset.who || '',
+        body: `<img class="zoomimg" src="${url}" alt="Photo">`,
+        foot: `<button class="btn ghost" data-x>Close</button><a class="btn" href="${url}" download>${I.download}Download</a>`,
+        onMount(b, f) { f.querySelector('[data-x]').onclick = () => UI.closeSheet(); } });
+    },
     resetMeeting: async () => {
       const m = S.meetings.find(x => x.id === id);
       if (!m) return;
@@ -425,6 +478,258 @@ document.addEventListener('input', UI.debounce(e => {
   }, { passive: true });
 })();
 
+/* ---------------- voice notes ----------------
+   A rep has thirty seconds between meetings. Record, stop, and the note writes
+   itself. Everything is saved even when the transcript cannot be fetched. */
+let recorder = null, recChunks = [], recTimer = null, recStart = 0, recStream = null;
+
+function recMime() {
+  const want = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/aac', 'audio/mpeg'];
+  for (const t of want) if (window.MediaRecorder?.isTypeSupported?.(t)) return t;
+  return '';
+}
+
+function stopRec() {
+  if (recTimer) { clearInterval(recTimer); recTimer = null; }
+  try { if (recorder && recorder.state !== 'inactive') recorder.stop(); } catch (e) {}
+  if (recStream) recStream.getTracks().forEach(t => t.stop());
+  recStream = null; recorder = null;
+}
+
+function clock(ms) {
+  const s = Math.floor(ms / 1000);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
+
+async function openVoice(table, id) {
+  const isLead = table === 'ev_leads';
+  const row = (isLead ? S.leads : S.meetings).find(r => r.id === id);
+  if (!row) return;
+  const who = isLead ? (row.company || row.full_name || 'this contact') : row.company_name;
+
+  if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+    return toast('This browser cannot record audio. Use Chrome or Safari.', { kind: 'bad' });
+  }
+
+  let blob = null, result = null, phase = 'idle';
+
+  openSheet({
+    title: 'Record what happened', sub: who,
+    body: `<div id="vcBody"></div>`,
+    foot: `<button class="btn ghost" data-x>Cancel</button><button class="btn primary" id="vcSave" disabled>${I.check}Save to record</button>`,
+    onMount(b, f) {
+      const body = b.querySelector('#vcBody'), save = f.querySelector('#vcSave');
+      f.querySelector('[data-x]').onclick = () => UI.closeSheet();
+
+      const paint = () => {
+        if (phase === 'idle') {
+          body.innerHTML = `<button class="recbtn" id="vcGo">
+              <span class="rb-dot"></span>
+              <span class="rb-tx"><b>Start recording</b><i>Say what happened while it is fresh</i></span>
+            </button>
+            <p class="hint" style="margin:12px 2px 0">Up to ${Math.round(CFG.voiceMaxMs / 1000)} seconds. It gets written up for you and saved against ${UI.esc(who)}.</p>`;
+          body.querySelector('#vcGo').onclick = go;
+          save.disabled = true;
+        } else if (phase === 'rec') {
+          body.innerHTML = `<div class="reclive">
+              <div class="rl-top"><span class="rl-live"><i></i>Recording</span><span class="rl-t" id="vcT">0:00</span></div>
+              <div class="rl-bars" id="vcBars">${Array.from({ length: 28 }, () => '<i></i>').join('')}</div>
+            </div>
+            <button class="btn primary block" id="vcStop" style="margin-top:12px">${I.check}Stop and write it up</button>`;
+          body.querySelector('#vcStop').onclick = () => stop();
+          save.disabled = true;
+        } else if (phase === 'work') {
+          body.innerHTML = `<div class="ocrbar"><span class="sp"></span><span>Writing up your note</span></div>
+            <div class="vcskel"><div class="skel" style="height:13px;width:92%"></div><div class="skel" style="height:13px;width:80%;margin-top:8px"></div><div class="skel" style="height:13px;width:86%;margin-top:8px"></div></div>`;
+          save.disabled = true;
+        } else {
+          const t = result?.transcript || '';
+          const warn = !result ? `<div class="ocrbar" data-s="warn">${I.wifiOff}<span>Saved the audio. The write-up will run when you are back online.</span></div>` : '';
+          body.innerHTML = `${warn}
+            <audio class="vcaudio" controls src="${URL.createObjectURL(blob)}"></audio>
+            ${result?.summary ? `<div class="vcsum">${I.sparkle}<span>${UI.esc(result.summary)}</span></div>` : ''}
+            <div class="field">
+              <label for="vcTx">What happened</label>
+              <textarea class="input" id="vcTx" rows="7" placeholder="Type it yourself if you prefer">${UI.esc(t)}</textarea>
+            </div>
+            ${result?.next_step ? `<label class="chk"><input type="checkbox" id="vcNs" checked><span><b>Set the next step</b><i>${UI.esc(result.next_step)}</i></span></label>` : ''}
+            <button class="btn ghost block" id="vcRedo" style="margin-top:4px">${I.refresh}Record again</button>`;
+          body.querySelector('#vcRedo').onclick = () => { blob = null; result = null; phase = 'idle'; paint(); };
+          save.disabled = false;
+        }
+      };
+
+      async function go() {
+        try {
+          recStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+        } catch (e) {
+          return toast(/NotAllowed|Permission/i.test(e.name + e.message)
+            ? 'Your browser blocked the microphone. Allow it and try again.'
+            : 'No microphone found.', { kind: 'bad' });
+        }
+        const mime = recMime();
+        recChunks = [];
+        recorder = new MediaRecorder(recStream, mime ? { mimeType: mime, audioBitsPerSecond: 64000 } : undefined);
+        recorder.ondataavailable = e => { if (e.data && e.data.size) recChunks.push(e.data); };
+        recorder.onstop = () => finish(mime);
+        recorder.start(500);
+        recStart = Date.now();
+        phase = 'rec'; paint();
+        UI.buzz(12);
+
+        /* a cheap level meter, so it is obvious the mic is actually live */
+        const ac = new (window.AudioContext || window.webkitAudioContext)();
+        const an = ac.createAnalyser(); an.fftSize = 64;
+        ac.createMediaStreamSource(recStream).connect(an);
+        const buf = new Uint8Array(an.frequencyBinCount);
+        recTimer = setInterval(() => {
+          const ms = Date.now() - recStart;
+          const t = $('#vcT'); if (t) t.textContent = clock(ms);
+          an.getByteFrequencyData(buf);
+          const bars = $('#vcBars');
+          if (bars) {
+            const n = bars.children.length;
+            for (let i = 0; i < n; i++) {
+              const v = buf[Math.floor(i / n * buf.length)] / 255;
+              bars.children[i].style.transform = `scaleY(${Math.max(0.08, Math.min(1, v * 1.7))})`;
+            }
+          }
+          if (ms >= CFG.voiceMaxMs) { toast('Reached the time limit'); stop(); ac.close(); }
+        }, 90);
+      }
+
+      function stop() {
+        if (recTimer) { clearInterval(recTimer); recTimer = null; }
+        phase = 'work'; paint();
+        try { if (recorder && recorder.state !== 'inactive') recorder.stop(); } catch (e) { phase = 'idle'; paint(); }
+      }
+
+      async function finish(mime) {
+        const ms = Date.now() - recStart;
+        if (recStream) recStream.getTracks().forEach(t => t.stop());
+        recStream = null;
+        blob = new Blob(recChunks, { type: mime || 'audio/webm' });
+        blob.__ms = ms;
+        if (blob.size < 1200) { toast('That was too short', { kind: 'bad' }); phase = 'idle'; return paint(); }
+        if (!navigator.onLine) { result = null; phase = 'done'; return paint(); }
+        try { result = await Store.transcribe(blob); }
+        catch (e) { result = null; toast(String(e.message || e).slice(0, 90), { kind: 'bad' }); }
+        phase = 'done'; paint();
+      }
+
+      save.onclick = async () => {
+        if (!blob) return;
+        const tx = ($('#vcTx')?.value || '').trim();
+        const ns = $('#vcNs')?.checked && result?.next_step ? result.next_step : null;
+        const extra = { voice_transcript: tx || null, voice_ms: Math.round(blob.__ms || 0), updated_at: new Date().toISOString() };
+        if (ns && !row.next_step) extra.next_step = ns;
+        UI.closeSheet();
+        await Store.saveMedia('voice', table, id, blob, extra);
+        Store.log('voice_note', `recorded a voice note on ${who}`, isLead ? { lead_id: id } : { meeting_id: id });
+        toast('Voice note saved', { kind: 'ok', icon: 'note' });
+        render();
+      };
+
+      paint();
+    },
+    onClose: stopRec
+  });
+}
+
+/* ---------------- selfie ---------------- */
+async function saveSelfie(table, id, blob) {
+  const isLead = table === 'ev_leads';
+  const row = (isLead ? S.leads : S.meetings).find(r => r.id === id);
+  const who = isLead ? (row?.company || row?.full_name || 'this contact') : row?.company_name;
+  closeSheet();
+  toast('Saving the photo');
+  await Store.saveMedia('selfie', table, id, blob, { updated_at: new Date().toISOString() });
+  Store.log('selfie', `added a photo with ${who}`, isLead ? { lead_id: id } : { meeting_id: id });
+  toast('Photo saved', { kind: 'ok', icon: 'image' });
+  render();
+}
+
+let selfieTarget = null;
+
+function openSelfie(table, id) {
+  selfieTarget = { table, id };
+  openCamera({
+    title: 'Photo together', sub: 'Front camera, switch if you need the back',
+    hint: 'Get both of you in frame. Switch to the back camera for a booth shot.',
+    guide: false, facing: 'user', shot: 'Take photo', pickTo: '#selfiePick',
+    onShot: blob => saveSelfie(table, id, blob)
+  });
+}
+
+/* ---------------- whatsapp ----------------
+   The number on a card is often local, and wa.me silently fails without a
+   country code, so anything that does not look dialable gets fixed first. */
+function waDigits(n) { return String(n || '').replace(/[^\d]/g, '').replace(/^0+/, ''); }
+function waOk(n) {
+  const d = waDigits(n);
+  return d.length >= 10 && d.length <= 15 ? d : null;
+}
+
+function waOpen(n, who) {
+  const d = waOk(n);
+  if (!d) return false;
+  window.open(`https://wa.me/${d}`, '_blank', 'noopener');
+  if (who) toast(`Opening WhatsApp with ${who}`, { icon: 'phone' });
+  return true;
+}
+
+function openWhatsApp(table, id) {
+  const isLead = table === 'ev_leads';
+  const row = (isLead ? S.leads : S.meetings).find(r => r.id === id);
+  if (!row) return;
+  const who = isLead ? (row.full_name || row.company || 'them') : (row.prospect_name || row.company_name);
+  const field = isLead ? 'phone' : 'mobile';
+  const have = row[field] || (isLead ? row.phone_2 : row.mobile_2) || '';
+
+  if (waOpen(have, who)) return;
+
+  /* no number, or one we cannot dial: ask for it, save it, then go */
+  openSheet({
+    title: have ? 'Check the number' : 'No number on file',
+    sub: who,
+    body: `<p class="hint" style="margin:0 0 14px">${have
+      ? `We have <b>${UI.esc(have)}</b> for ${UI.esc(who)}, which is missing a country code. Fix it and WhatsApp opens straight away.`
+      : `There is no phone number saved for ${UI.esc(who)}. Add it and WhatsApp opens straight away. It is saved to the record too.`}</p>
+      <div class="field">
+        <label for="waN">WhatsApp number</label>
+        <input class="input" id="waN" type="tel" inputmode="tel" autocomplete="off" placeholder="+971 50 123 4567" value="${UI.esc(have)}">
+      </div>
+      <div class="ccrow">${['+971', '+91', '+44', '+1', '+966', '+65'].map(c => `<button class="ccbtn" data-cc="${c}">${c}</button>`).join('')}</div>
+      <p class="hint" style="margin:12px 2px 0">Include the country code. Without it WhatsApp cannot find them.</p>`,
+    foot: `<button class="btn ghost" data-x>Cancel</button><button class="btn primary" id="waGo" disabled>${I.phone}Save and open</button>`,
+    onMount(b, f) {
+      const inp = b.querySelector('#waN'), go = f.querySelector('#waGo');
+      f.querySelector('[data-x]').onclick = () => UI.closeSheet();
+      const check = () => { go.disabled = !waOk(inp.value); };
+      inp.oninput = check; check();
+      b.querySelectorAll('[data-cc]').forEach(btn => {
+        btn.onclick = () => {
+          const rest = waDigits(inp.value);
+          const cc = waDigits(btn.dataset.cc);
+          inp.value = btn.dataset.cc + ' ' + (rest.startsWith(cc) ? rest.slice(cc.length) : rest);
+          check(); inp.focus();
+        };
+      });
+      inp.onkeydown = e => { if (e.key === 'Enter' && !go.disabled) go.click(); };
+      setTimeout(() => inp.focus(), 120);
+
+      go.onclick = async () => {
+        const v = inp.value.trim();
+        UI.closeSheet();
+        const patch = { [field]: v, updated_at: new Date().toISOString() };
+        if (isLead) await Store.updateLead(id, patch); else await Store.updateMeeting(id, patch);
+        render();
+        waOpen(v, who);
+      };
+    }
+  });
+}
+
 /* ---------------- live camera ----------------
    The native file input with capture=environment does nothing on a laptop, so
    every camera entry point now opens a real viewfinder via getUserMedia and only
@@ -461,19 +766,27 @@ async function attachCam(deviceId) {
     : (facing === 'user' || (!facing && camFacing === 'user')) ? 'Front camera' : 'Back camera';
 }
 
-async function openCamera() {
-  if (!navigator.mediaDevices?.getUserMedia) return $('#camPick').click();
+async function openCamera(opt = {}) {
+  const o = {
+    title: 'Scan a card', sub: 'Fill the frame, then shoot',
+    hint: 'Landscape works best. Keep the whole card inside the frame.',
+    guide: true, facing: 'environment', shot: 'Capture',
+    onShot: blob => runScan(new File([blob], 'card.jpg', { type: 'image/jpeg' })),
+    ...opt
+  };
+  camFacing = o.facing;
+  if (!navigator.mediaDevices?.getUserMedia) return $(o.pickTo || '#camPick').click();
 
   openSheet({
-    title: 'Scan a card', sub: 'Fill the frame, then shoot',
-    body: `<div class="camwrap">
+    title: o.title, sub: o.sub,
+    body: `<div class="camwrap${o.guide ? '' : ' plain'}">
         <video id="camV" playsinline autoplay muted></video>
-        <div class="camguide"><span></span></div>
+        ${o.guide ? '<div class="camguide"><span></span></div>' : ''}
         <div class="camtop"><span class="campill" id="camLbl">Starting the camera</span></div>
       </div>
-      <p class="hint" id="camHint" style="margin:10px 2px 0">Landscape works best. Keep the whole card inside the frame.</p>`,
+      <p class="hint" id="camHint" style="margin:10px 2px 0">${o.hint}</p>`,
     foot: `<button class="btn ghost" id="camSwap" title="Switch camera">${I.refresh}Switch</button>
-           <button class="btn primary" id="camShot" disabled>${I.camera}Capture</button>`,
+           <button class="btn primary" id="camShot" disabled>${I.camera}${o.shot}</button>`,
     onMount(b, f) {
       const shot = f.querySelector('#camShot'), swap = f.querySelector('#camSwap');
 
@@ -496,7 +809,7 @@ async function openCamera() {
         swap.style.display = 'none';
         shot.disabled = false;
         shot.innerHTML = `${I.image}Pick a photo`;
-        shot.onclick = () => { closeSheet(); $('#filePick').click(); };
+        shot.onclick = () => { closeSheet(); $(o.pickTo || '#filePick').click(); };
       });
 
       swap.onclick = async () => {
@@ -519,7 +832,7 @@ async function openCamera() {
         c.toBlob(blob => {
           if (!blob) return toast('Capture failed. Try again.', { kind: 'bad' });
           stopCam();
-          runScan(new File([blob], 'card.jpg', { type: 'image/jpeg' }));
+          o.onShot(blob);
         }, 'image/jpeg', 0.92);
       };
     },
@@ -528,6 +841,13 @@ async function openCamera() {
 }
 
 /* ---------------- scan flow ---------------- */
+$('#selfiePick').addEventListener('change', async ev => {
+  const file = ev.target.files && ev.target.files[0];
+  ev.target.value = '';
+  if (!file || !selfieTarget) return;
+  await saveSelfie(selfieTarget.table, selfieTarget.id, file);
+});
+
 ['#camPick', '#filePick'].forEach(sel => {
   $(sel).addEventListener('change', async ev => {
     const file = ev.target.files && ev.target.files[0];

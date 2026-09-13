@@ -76,6 +76,7 @@ const S = {
   net: navigator.onLine ? 'live' : 'offline',
   ready: false,
   ocrConfigured: null,
+  voiceConfigured: null,
   thumbs: {}             // storage path -> signed url
 };
 window.S = S;
@@ -367,6 +368,17 @@ async function runJob(j) {
   } else if (j.kind === 'lead_update') {
     const { error } = await SB.from('ev_leads').update(j.values).eq('id', j.id2);
     if (error) throw error;
+  } else if (j.kind === 'media_upload') {
+    /* one job shape for a selfie or a voice note, on a meeting or a contact,
+       so an upload survives a dead connection and finishes on the next flush */
+    const blob = await IDB.bGet(j.blobKey);
+    if (!blob) return;
+    const up = await SB.storage.from(CFG.bucket).upload(j.path, blob, { contentType: j.mime || blob.type || 'application/octet-stream', upsert: true });
+    if (up.error) throw up.error;
+    const patch = { [j.field]: j.path, ...(j.values || {}) };
+    const { error } = await SB.from(j.table).update(patch).eq('id', j.id2);
+    if (error) throw error;
+    await IDB.bDel(j.blobKey);
   } else if (j.kind === 'meeting_delete') {
     const { error } = await SB.from('ev_meetings').delete().eq('id', j.id2);
     if (error) throw error;
@@ -542,6 +554,74 @@ async function thumb(path) {
   } catch (e) { return null; }
 }
 
+/* Stores a blob against a record: local state first so the UI is instant, then
+   a queued upload that patches the row once the bytes are up. */
+async function saveMedia(kind, table, id, blob, extra = {}) {
+  const isLead = table === 'ev_leads';
+  const rowList = isLead ? S.leads : S.meetings;
+  const row = rowList.find(r => r.id === id);
+  if (!row) return null;
+
+  const ext = kind === 'voice'
+    ? (blob.type.includes('mp4') ? 'm4a' : blob.type.includes('mpeg') ? 'mp3' : 'webm')
+    : 'jpg';
+  const path = `${S.eventId}/${kind}/${id}-${Date.now()}.${ext}`;
+  const field = kind === 'voice' ? 'voice_note_path' : 'selfie_path';
+  const blobKey = `${kind}-${id}-${uuid()}`;
+  await IDB.bSet(blobKey, blob);
+
+  Object.assign(row, { [field]: path, ...extra });
+  row._dirty = true;
+  /* show it straight away from the local blob, no round trip */
+  S.thumbs[path] = URL.createObjectURL(blob);
+  bus.emit('data'); saveSnapshot();
+
+  await enqueue({ kind: 'media_upload', table, id2: id, path, field, mime: blob.type, blobKey, values: extra });
+  flush();
+  return path;
+}
+
+async function clearMedia(kind, table, id) {
+  const isLead = table === 'ev_leads';
+  const row = (isLead ? S.leads : S.meetings).find(r => r.id === id);
+  if (!row) return;
+  const field = kind === 'voice' ? 'voice_note_path' : 'selfie_path';
+  const old = row[field];
+  const patch = kind === 'voice'
+    ? { voice_note_path: null, voice_transcript: null, voice_ms: null }
+    : { selfie_path: null };
+  if (isLead) await updateLead(id, patch); else await updateMeeting(id, patch);
+  if (old) { try { await SB.storage.from(CFG.bucket).remove([old]); } catch (e) {} delete S.thumbs[old]; }
+}
+
+/* ---------------- voice bridge ---------------- */
+async function voiceCheck() {
+  if (S.voiceConfigured !== null) return S.voiceConfigured;
+  try {
+    const { data, error } = await SB.functions.invoke(CFG.voiceFn, { method: 'GET' });
+    if (error) throw error;
+    S.voiceConfigured = !!data?.configured;
+  } catch (e) { S.voiceConfigured = false; }
+  return S.voiceConfigured;
+}
+
+async function transcribe(blob) {
+  const b64 = await new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(String(r.result));
+    r.onerror = rej;
+    r.readAsDataURL(blob);
+  });
+  const { data, error } = await SB.functions.invoke(CFG.voiceFn, { body: { audio: b64, mime: blob.type || 'audio/webm' } });
+  if (error) {
+    let msg = error.message || 'transcription failed';
+    try { const j = await error.context?.json?.(); if (j?.message || j?.error) msg = j.message || j.error; } catch (e) {}
+    throw new Error(msg);
+  }
+  if (data?.error) throw new Error(data.message || data.error);
+  return data;
+}
+
 /* ---------------- OCR bridge ---------------- */
 async function ocrCheck() {
   if (S.ocrConfigured !== null) return S.ocrConfigured;
@@ -575,5 +655,6 @@ window.Store = {
   SB, bus, S, IDB, uuid,
   signIn, signOut, getSession, loadMe, loadAll, loadEventData, resume, switchEvent,
   updateMeeting, addMeeting, saveLead, updateLead, deleteLead, addEvent, log,
-  flush, thumb, ocrCheck, ocrRemote, deleteMeeting, resetEvent, CLEAR
+  flush, thumb, ocrCheck, ocrRemote, deleteMeeting, resetEvent, CLEAR,
+  saveMedia, clearMedia, voiceCheck, transcribe
 };

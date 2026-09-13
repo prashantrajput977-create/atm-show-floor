@@ -516,6 +516,46 @@ function viewBoard() {
   </div>`;
 }
 
+/* The floor capture strip: one row of three, on a meeting and on a contact.
+   `tb` is the table so the same markup drives both. */
+function capRow(tb, r) {
+  const num = tb === 'ev_leads' ? (r.phone || r.phone_2) : (r.mobile || r.mobile_2);
+  return `<div class="caprow">
+    <button data-act="voice" data-id="${r.id}" data-tb="${tb}" class="${r.voice_note_path ? 'on' : ''}">
+      ${I.mic}<span>${r.voice_note_path ? 'Re-record' : 'Record'}</span></button>
+    <button data-act="selfie" data-id="${r.id}" data-tb="${tb}" class="${r.selfie_path ? 'on' : ''}">
+      ${I.camera}<span>${r.selfie_path ? 'Retake' : 'Photo'}</span></button>
+    <button data-act="wa" data-id="${r.id}" data-tb="${tb}" class="wa">
+      ${I.whatsapp}<span>WhatsApp</span>${num ? '' : `<i class="cap-x">Add number</i>`}</button>
+  </div>`;
+}
+
+/* Voice note and photo, once captured. */
+function capMedia(tb, r, who) {
+  if (!r.voice_note_path && !r.selfie_path) return '';
+  const secs = r.voice_ms ? Math.round(r.voice_ms / 1000) : 0;
+  const dur = secs ? `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}` : '';
+  return `<div class="sec-h"><h2>Captured on the floor</h2></div>
+    ${r.voice_note_path ? `<div class="vnote">
+      <div class="vn-top">
+        <span class="vn-ic">${I.waves}</span>
+        <div class="vn-m"><b>Voice note</b>${dur ? `<span class="mono">${dur}</span>` : ''}</div>
+        <button class="iconbtn" data-act="delVoice" data-id="${r.id}" data-tb="${tb}" aria-label="Delete voice note">${I.trash}</button>
+      </div>
+      <button class="vn-play" data-act="playVoice" data-id="${r.id}" data-tb="${tb}">${I.play}Play the recording</button>
+      <audio controls hidden preload="none"></audio>
+      ${r.voice_transcript
+        ? `<p class="vn-tx">${UI.esc(r.voice_transcript)}</p>`
+        : `<div class="vn-none"><span>No write-up yet.</span>
+             <button class="btn ghost sm" data-act="retranscribe" data-id="${r.id}" data-tb="${tb}">${I.sparkle}Write it up</button></div>`}
+    </div>` : ''}
+    ${r.selfie_path ? `<button class="selfie" data-act="zoom" data-p="${UI.esc(r.selfie_path)}" data-who="${UI.esc(who || '')}">
+      <img data-selfie="${UI.esc(r.selfie_path)}" alt="Photo with ${UI.esc(who || 'them')}">
+      <span class="sf-tag">${I.image}Photo together</span>
+      <span class="sf-del iconbtn" data-act="delSelfie" data-id="${r.id}" data-tb="${tb}" role="button" aria-label="Delete photo">${I.trash}</span>
+    </button>` : ''}`;
+}
+
 /* ---------- leaderboards ----------
    Leaders take meetings, reps book them. Ranking one against the other made
    both numbers meaningless, so they get their own tables and own metrics. */
@@ -756,6 +796,11 @@ async function hydrateThumbs() {
     img.className = 'thumb'; img.src = url; img.alt = ''; img.loading = 'lazy';
     el.replaceWith(img);
   }
+  for (const el of UI.$$('[data-selfie]').filter(e => e.dataset.selfie)) {
+    const url = await Store.thumb(el.dataset.selfie);
+    if (!url) continue;
+    el.src = url; el.removeAttribute('data-selfie');
+  }
   for (const el of bigs) {
     const url = await Store.thumb(el.dataset.bigthumb);
     if (!url) continue;
@@ -902,6 +947,8 @@ function openMeeting(id) {
       ${isDone(m) || m.outcome_notes ? `<button class="btn ghost block" data-act="resetMeeting" data-id="${m.id}">${I.undo}Reset this record</button>` : ''}
     </div>
 
+    ${capRow('ev_meetings', m)}
+
     <div class="card" style="padding:4px 13px;margin-bottom:16px">
       ${row('clock', 'When', `${UI.esc(UI.fmtDate(m.meeting_date))} · <span class="mono">${UI.esc(UI.fmtTimeStr(m.meeting_time))}</span>${m.duration_min ? ' · ' + m.duration_min + ' min' : ''}`)}
       ${row('user', 'Prospect', UI.esc([m.prospect_name, m.designation].filter(Boolean).join(' · ')))}
@@ -919,6 +966,8 @@ function openMeeting(id) {
       ${row('arrowRight', 'Next step', m.next_step ? UI.esc(m.next_step) + (m.next_step_due ? ` <span class="mono" style="color:var(--tx-3)">${UI.esc(m.next_step_due)}</span>` : '') : '')}
       ${row('dollar', 'Deal value', m.deal_value_usd ? UI.esc(UI.money(m.deal_value_usd)) : '')}
     </div>
+
+    ${capMedia('ev_meetings', m, m.company_name)}
 
     <div class="sec-h"><h2>Cards from this meeting</h2><span class="count">${ls.length}</span></div>
     ${ls.length ? ls.map(leadCard).join('') : `<div class="hint" style="padding:4px 2px 12px">No card captured yet.</div>`}
@@ -1125,6 +1174,8 @@ function openLead(id) {
       <button class="btn ghost" data-act="editLead" data-id="${l.id}" style="flex:none">${I.edit}</button>
     </div>
 
+    ${capRow('ev_leads', l)}
+
     <div class="card" style="padding:4px 13px;margin-bottom:16px">
       ${row('briefcase', 'Title', UI.esc(l.designation || ''))}
       ${row('building', 'Company', UI.esc(l.company || ''))}
@@ -1140,6 +1191,8 @@ function openLead(id) {
         mtg ? `<button class="iconbtn" data-act="meeting" data-id="${mtg.id}" aria-label="Open meeting">${I.chev}</button>` : '')}
       ${row('user', 'Captured by', `${UI.esc(who?.short_name || l.captured_by_name || '—')} · ${UI.esc(UI.ago(l.created_at))}`)}
     </div>
+
+    ${capMedia('ev_leads', l, l.full_name || l.company)}
 
 
     ${!l.meeting_id ? `<button class="btn ghost block" data-act="linkMeeting" data-id="${l.id}" style="margin-bottom:10px">${I.link}Attach to a meeting</button>` : ''}
@@ -1508,7 +1561,7 @@ function render() {
   }
   hydrateThumbs();
   UI.$$('.tab').forEach(t => t.setAttribute('aria-selected', String(t.dataset.t === V.tab)));
-  const titles = { today: 'Today', agenda: 'All days', leads: 'Leads', walkins: 'Walk-ins', scan: 'Scan a card', board: 'Team board', me: 'You' };
+  const titles = { today: 'Today', agenda: 'All days', leads: 'Leads', walkins: 'Walk-ins', scan: 'Scan a card', board: 'Analytics', me: 'You' };
   const vt = UI.$('#viewTitle');
   if (vt) vt.textContent = titles[V.tab] || 'Today';
   UI.$('#dayrail').hidden = !(V.tab === 'today' || V.tab === 'board');
