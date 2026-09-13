@@ -1664,14 +1664,20 @@ function paintNudge() {
   }
   const fresh = el.dataset.nid !== m.id;
   el.dataset.nid = m.id;
+  /* Attendance already answered: the only thing missing is the outcome, so ask
+     for that instead of asking whether they showed up twice. */
+  const seen = m.status === 'met';
   el.innerHTML = `<div class="nudge">
-    <div class="nd-h"><span class="nd-dot"></span>Just wrapped · ${UI.esc(UI.fmtTimeStr(m.meeting_time))}
+    <div class="nd-h"><span class="nd-dot"></span>${seen ? 'Outcome missing' : 'Just wrapped'} · ${UI.esc(UI.fmtTimeStr(m.meeting_time))}
       <button class="nd-x" data-act="nudgeLater" data-id="${m.id}">Later</button></div>
     <h4>${UI.esc(m.company_name || 'This meeting')}</h4>
     <div class="nd-s">${UI.esc([m.prospect_name, m.designation, m.geo_region].filter(Boolean).join(' · ') || 'Log it while it is fresh')}</div>
     <div class="nd-b">
-      <button class="btn primary" data-act="nudgeMet" data-id="${m.id}">${I.handshake}They turned up</button>
-      <button class="btn" data-act="nudgeNo" data-id="${m.id}">${I.ban}No show</button>
+      ${seen
+        ? `<button class="btn primary" data-act="nudgeMet" data-id="${m.id}">${I.bolt}Log the outcome</button>
+           <button class="btn" data-act="nudgeLater" data-id="${m.id}">Not now</button>`
+        : `<button class="btn primary" data-act="nudgeMet" data-id="${m.id}">${I.handshake}They turned up</button>
+           <button class="btn" data-act="nudgeNo" data-id="${m.id}">${I.ban}No show</button>`}
     </div>
     <div class="nd-more"${more ? '' : ' hidden'}>${more ? more + ' more waiting' : ''}</div>
   </div>`;
