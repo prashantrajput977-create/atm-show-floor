@@ -621,7 +621,7 @@ function sourceBlock(mtgs, leads) {
       <div class="srow head">
         <span class="s-1">Route</span>
         <span class="s-n">Total</span><span class="s-n">Logged</span>
-        <span class="s-n">Deals</span><span class="s-n">In play</span>
+        <span class="s-n">Deals</span><span class="s-n">Open</span>
       </div>
       ${rows.map(r => `<div class="srow">
         <span class="s-1">${SOURCES[r.k].label}<i>${SOURCES[r.k].desc}</i></span>

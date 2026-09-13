@@ -825,12 +825,15 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
 .srow.head .s-1 { font-size: 9.5px; font-weight: 700; letter-spacing: .09em; color: var(--tx-3) }
 .s-n {
   text-align: right; font-family: var(--ff-mono); font-size: 13.5px; font-weight: 700;
-  letter-spacing: -.03em; color: var(--tx-2);
+  letter-spacing: -.03em; color: var(--tx-2); white-space: nowrap;
 }
 .s-n.hi { color: var(--deal) }
 @media (max-width: 460px) {
-  .srow { grid-template-columns: minmax(0, 1fr) repeat(4, 34px); gap: 4px; padding: 10px }
-  .s-n { font-size: 12px }
+  .srow { grid-template-columns: minmax(0, 1fr) repeat(4, 40px); gap: 3px; padding: 10px }
+  .s-n { font-size: 12.5px }
+  .srow.head { letter-spacing: .02em }
+  .srow.head .s-n { font-size: 8px; letter-spacing: .02em }
+  .srow.head .s-1 { font-size: 8.5px }
 }
 
 /* activity feed */
