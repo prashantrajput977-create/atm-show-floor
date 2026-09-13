@@ -1811,13 +1811,15 @@ function teamPane() {
   const on = rows.filter(r => r.p.k === 'live').length;
   const never = rows.filter(r => r.p.k === 'never');
   const behind = rows.filter(r => r.total && r.logged < r.total);
+  /* count meetings, not people-on-meetings: an attendee and a rep share a row. */
+  const openCount = mtgs.filter(m => !isDone(m)).length;
 
   return `
   <div class="kpis" style="margin-bottom:14px">
     <div class="kpi brand"><div class="k">On the app now</div><div class="v tnum">${on}</div><div class="d">of ${rows.length} on the roster</div></div>
     <div class="kpi ${never.length ? 'bad' : 'deal'}"><div class="k">Never signed in</div><div class="v tnum">${never.length}</div><div class="d">${never.length ? never.map(r => UI.esc(r.mem.short_name)).join(', ') : 'everyone is in'}</div></div>
-    <div class="kpi hot"><div class="k">Behind on logging</div><div class="v tnum">${behind.length}</div><div class="d">${behind.reduce((s, r) => s + (r.total - r.logged), 0)} outcomes open</div></div>
-    <div class="kpi"><div class="k">Cards today</div><div class="v tnum">${S.leads.length}</div><div class="d">${mtgs.filter(m => m.voice_note_path).length} voice notes</div></div>
+    <div class="kpi hot"><div class="k">Behind on logging</div><div class="v tnum">${behind.length}</div><div class="d">${openCount} meeting${openCount === 1 ? '' : 's'} still open</div></div>
+    <div class="kpi"><div class="k">Cards captured</div><div class="v tnum">${S.leads.length}</div><div class="d">${mtgs.filter(m => m.voice_note_path).length + S.leads.filter(l => l.voice_note_path).length} voice notes</div></div>
   </div>
 
   <div class="sec">
