@@ -181,23 +181,42 @@ async function loadAll({ fromCache = true } = {}) {
     subscribe();
   } catch (e) {
     console.error('loadAll', e);
+    /* mark it so the UI says "could not load" instead of "nothing scheduled" */
+    S.loadFailed = !S.meetings.length;
     setNet(navigator.onLine ? 'live' : 'offline');
-    if (!S.ready) throw e;
+    bus.emit('data');
+    if (!S.ready) { S.ready = true; bus.emit('data'); }
   }
+}
+
+/* Conference wifi drops requests. A single failed fetch used to leave the day
+   looking genuinely empty, which is worse than showing nothing, so retry with
+   backoff and never overwrite good rows with an empty result. */
+async function attempt(fn, tries = 3) {
+  let last;
+  for (let i = 0; i < tries; i++) {
+    try {
+      const r = await fn();
+      if (!r.error) return r;
+      last = r.error;
+    } catch (e) { last = e; }
+    if (i < tries - 1) await new Promise(r => setTimeout(r, 400 * (i + 1)));
+  }
+  throw last;
 }
 
 async function loadEventData() {
   const id = S.eventId;
   const [m, l, a] = await Promise.all([
-    SB.from('ev_meetings').select(MEET_COLS).eq('event_id', id).order('meeting_date').order('meeting_time', { nullsFirst: false }),
-    SB.from('ev_leads').select(LEAD_COLS).eq('event_id', id).order('created_at', { ascending: false }),
+    attempt(() => SB.from('ev_meetings').select(MEET_COLS).eq('event_id', id).order('meeting_date').order('meeting_time', { nullsFirst: false })),
+    attempt(() => SB.from('ev_leads').select(LEAD_COLS).eq('event_id', id).order('created_at', { ascending: false })),
     SB.from('ev_activity').select('*').eq('event_id', id).order('created_at', { ascending: false }).limit(120)
+      .then(r => r, () => ({ error: true }))
   ]);
-  if (m.error) throw m.error;
-  if (l.error) throw l.error;
   S.meetings = m.data || [];
   S.leads = l.data || [];
   S.activity = a.error ? [] : (a.data || []);
+  S.loadFailed = false;
 }
 
 async function switchEvent(id) {

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Vervotech Showdown</title>
 <meta name="description" content="Vervotech show floor companion. Your meetings, card capture and deal outcomes for Arabian Travel Market.">
-<meta name="theme-color" content="#EEF1F6">
+<meta name="theme-color" content="#F2F0EB">
 <meta name="color-scheme" content="light">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -73,8 +73,8 @@
 <div id="app" hidden>
   <header class="appbar">
     <div class="appbar-row">
-      <button class="brandmark" id="evBtn" aria-label="Switch event">
-        <span id="bmLogo" style="display:flex"></span>
+      <button class="brandmark" id="homeBtn" aria-label="Vervotech Showdown, go to today">
+        <span class="bm-mark" id="bmLogo"></span>
         <span class="bm-t">
           <span class="bm-1" id="bmName">Vervotech Showdown</span>
           <span class="bm-2" id="bmSub">loading</span>
@@ -84,6 +84,7 @@
       <button class="sync" id="syncPill" data-state="live" aria-live="polite">
         <span class="dot"></span><span id="syncTx">Live</span>
       </button>
+      <button class="iconbtn slim" id="evBtn" aria-label="Switch event"></button>
       <button class="avatar" id="meBtn" aria-label="Your profile"></button>
     </div>
     <nav class="dayrail scroll" id="dayrail" aria-label="Event days"></nav>

@@ -136,23 +136,29 @@ function viewToday() {
   else if (next) html += nowCard(next, 'Up next');
 
   if (sorted.length) {
-    html += `<div class="card" style="padding:13px;margin-bottom:18px">
-      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:9px">
-        <span class="mono" style="font-size:19px;font-weight:700;letter-spacing:-.04em">${logged}<span style="color:var(--tx-3)">/${sorted.length}</span></span>
-        <span style="font-size:12px;color:var(--tx-2);font-weight:600">outcomes logged${V.day === 'all' ? '' : ' · ' + UI.fmtDate(V.day)}</span>
-        <span class="spacer" style="flex:1"></span>
-        ${c.deal ? `<span class="tag deal">${c.deal} deal${c.deal === 1 ? '' : 's'}</span>` : ''}
-      </div>
+    html += `<div class="daysum">
       <div class="prog">
         <i class="d" style="width:${c.deal / T * 100}%"></i>
         <i class="h" style="width:${c.hot / T * 100}%"></i>
         <i class="n" style="width:${c.nurture / T * 100}%"></i>
         <i class="x" style="width:${c.bad / T * 100}%"></i>
       </div>
+      <div class="ln">
+        <span class="n">${logged}<i>/${sorted.length}</i></span>
+        <span class="lb">logged${V.day === 'all' ? '' : ' · ' + UI.fmtDate(V.day)}</span>
+        <span class="sp"></span>
+        ${c.deal ? `<span class="k deal">${c.deal} deal${c.deal === 1 ? '' : 's'}</span>` : ''}
+        ${c.hot ? `<span class="k hot">${c.hot} hot</span>` : ''}
+      </div>
     </div>`;
   }
 
-  if (!sorted.length) {
+  if (!sorted.length && S.loadFailed) {
+    /* never let a failed fetch masquerade as a clear day */
+    html += UI.emptyState('alert', 'Could not load the schedule',
+      'The connection dropped while fetching meetings. Nothing is lost. Pull the sync pill to try again.',
+      { act: 'retryLoad', label: 'Try again', icon: 'refresh' });
+  } else if (!sorted.length) {
     html += UI.emptyState('calendar',
       V.scope === 'mine' ? (amRep() ? 'Nothing you booked on this day' : 'Nothing on your name') : 'No meetings this day',
       V.scope === 'mine'
@@ -167,15 +173,17 @@ function viewToday() {
     sorted.forEach(m => {
       const sl = UI.slotOf(m.meeting_time);
       if (sl !== lastSlot) {
+        if (lastSlot !== null) html += '</div>';
         lastSlot = sl;
         const isNowSlot = live && UI.slotOf(live.meeting_time) === sl;
         html += `<div class="slot-h${isNowSlot ? ' now' : ''}">
           <span class="t">${UI.esc(sl)}</span><span class="ln"></span>
           ${isNowSlot ? '<span class="live">LIVE</span>' : ''}
-        </div>`;
+        </div><div class="sheet">`;
       }
       html += meetingCard(m);
     });
+    if (lastSlot !== null) html += '</div>';
     html += '</div>';
     html += `<button class="btn ghost block" data-act="addMeeting" style="margin-top:6px">${I.plus}Add a walk-in meeting</button>`;
   }
@@ -195,7 +203,7 @@ function nowCard(m, label) {
       ${m.outcome ? UI.tagFor(m.outcome) : ''}
     </div>
     <div class="acts">
-      <button class="btn primary" data-act="outcome" data-id="${m.id}">${I.checkCircle}${m.outcome ? 'Update call' : 'Log outcome'}</button>
+      <button class="btn primary" data-act="outcome" data-id="${m.id}">${I.check}${m.outcome ? 'Update call' : 'Log outcome'}</button>
       <button class="btn" data-act="scanFor" data-id="${m.id}">${I.card}Scan card</button>
     </div>
   </div>`;
@@ -207,33 +215,41 @@ function meetingCard(m) {
   const rep = UI.memberById(m.rep_id) || UI.memberByName(m.rep_name);
   const lc = leadsFor(m.id).length;
   const mine = isMine(m);
+  /* One quiet descriptor line instead of four competing pills. Anything
+     categorical becomes small-caps text; only an outcome earns colour. */
+  const facts = [
+    m.geo_region,
+    m.category ? shortCat(m.category) : '',
+    V.day === 'all' ? UI.fmtDate(m.meeting_date) : '',
+    m.duration_min && m.duration_min !== 30 ? m.duration_min + ' min' : ''
+  ].filter(Boolean);
+
   return `<button class="mtg" data-act="meeting" data-id="${m.id}"
-      data-outcome="${m.outcome || ''}" data-live="${liveInfo(m)}" data-done="${isDone(m) ? 1 : 0}">
+      data-outcome="${m.outcome || ''}" data-live="${liveInfo(m)}" data-done="${isDone(m) ? 1 : 0}"
+      data-mine="${mine ? 1 : 0}">
     <span class="tcol">
       <span class="hm">${f.hm}</span>
       <span class="ap">${f.ap || (m.meeting_time ? '' : 'TBD')}</span>
-      ${m.duration_min && m.duration_min !== 30 ? `<span class="nt">${m.duration_min}m</span>` : ''}
     </span>
     <span class="body">
-      <span class="co"><span class="nm">${UI.esc(m.company_name)}</span>
-        ${m.priority ? `<span style="color:var(--hot);display:flex">${I.flag}</span>` : ''}
+      <span class="co">
+        ${m.priority ? '<span class="pri" aria-label="Priority"></span>' : ''}
+        <span class="nm">${UI.esc(m.company_name)}</span>
       </span>
       ${m.prospect_name || m.designation
         ? `<span class="pr">${UI.esc([m.prospect_name, m.designation].filter(Boolean).join(' · '))}</span>`
-        : (m.geo_region ? `<span class="pr">${UI.esc(m.geo_region)}</span>` : '')}
-      <span class="meta">
-        ${m.outcome ? UI.tagFor(m.outcome) : (m.status !== 'scheduled' ? `<span class="tag"><span class="statedot ${m.status}"></span>${UI.esc(m.status.replace('_', ' '))}</span>` : '')}
-        ${m.category ? `<span class="tag">${UI.esc(shortCat(m.category))}</span>` : ''}
-        ${m.prospect_name && m.geo_region ? `<span class="tag">${UI.esc(m.geo_region)}</span>` : ''}
-        ${lc ? `<span class="tag brand">${I.card}${lc}</span>` : ''}
-        ${V.scope === 'team' && mine ? `<span class="tag mine">${amRep() ? 'Booked' : 'Mine'}</span>` : ''}
-        ${/* a rep never sits in the room, so name the attendee even in their own list */
-          own && (V.scope === 'team' || amRep()) ? `<span class="tag">${UI.avatar(own, 'xs')}${UI.esc(own.short_name || '')}</span>` : ''}
-        ${V.scope === 'team' && rep && rep.user_id !== own?.user_id ? UI.avatar(rep, 'xs') : ''}
-        ${V.day === 'all' ? `<span class="tag">${UI.esc(UI.fmtDate(m.meeting_date))}</span>` : ''}
-      </span>
+        : ''}
+      ${facts.length ? `<span class="facts">${facts.map(UI.esc).join('<i>·</i>')}</span>` : ''}
+      ${m.outcome || m.status !== 'scheduled' || lc
+        ? `<span class="meta">
+            ${m.outcome ? UI.tagFor(m.outcome) : (m.status !== 'scheduled' ? `<span class="tag"><span class="statedot ${m.status}"></span>${UI.esc(m.status.replace('_', ' '))}</span>` : '')}
+            ${lc ? `<span class="tag brand">${I.card}${lc}</span>` : ''}
+          </span>`
+        : ''}
     </span>
-    <span class="chev">${I.chev}</span>
+    <span class="rcol">
+      ${own && (V.scope === 'team' || amRep()) ? UI.avatar(own, 'xs') : ''}
+    </span>
   </button>`;
 }
 function shortCat(c) {
@@ -608,7 +624,7 @@ function openMeeting(id) {
     </div>
 
     <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:16px">
-      <button class="btn primary block" data-act="outcome" data-id="${m.id}">${I.checkCircle}${m.outcome ? 'Update the call' : 'Log the outcome'}</button>
+      <button class="btn primary block" data-act="outcome" data-id="${m.id}">${I.check}${m.outcome ? 'Update the call' : 'Log the outcome'}</button>
       <div style="display:flex;gap:9px">
         <button class="btn" style="flex:1" data-act="scanFor" data-id="${m.id}">${I.card}Scan card</button>
         <button class="btn" style="flex:1" data-act="editMeeting" data-id="${m.id}">${I.edit}Edit</button>

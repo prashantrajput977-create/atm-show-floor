@@ -8,21 +8,22 @@
    ============================================================ */
 
 :root {
-  /* paper */
-  --ink: #EEF1F6;
-  --ink-2: #F6F8FB;
+  /* Warm paper, not cool grey. Printed-schedule feel, and it lets the one
+     blue accent actually read as a signal instead of blending in. */
+  --ink: #F2F0EB;
+  --ink-2: #F9F8F4;
   --surf: #FFFFFF;
-  --surf-2: #FBFCFE;
-  --surf-3: #EDF0F6;
-  --line: #E2E6EE;
-  --line-2: #D0D6E2;
+  --surf-2: #FCFBF8;
+  --surf-3: #EFEDE6;
+  --line: #E4E0D6;
+  --line-2: #D2CCBE;
   --field: #FFFFFF;
-  --track: #E4E8F0;
+  --track: #E4E0D6;
 
-  /* text */
-  --tx: #101725;
-  --tx-2: #525D74;
-  --tx-3: #6B7587;
+  /* warm near-black, so text sits on the paper rather than floating above it */
+  --tx: #16130E;
+  --tx-2: #5A554A;
+  --tx-3: #857E71;
 
   /* signal — each usable as text on paper and as a fill under white */
   --brand: #2B4FEE;
@@ -40,18 +41,18 @@
   --dead-dim: rgba(216, 50, 60, .10);
 
   /* chrome */
-  --bar: rgba(255, 255, 255, .88);
-  --scrim: rgba(16, 23, 37, .42);
-  --tint: rgba(16, 23, 37, .05);
+  --bar: rgba(255, 255, 255, .9);
+  --scrim: rgba(22, 19, 14, .44);
+  --tint: rgba(22, 19, 14, .05);
 
-  --r-sm: 10px;
-  --r: 14px;
-  --r-lg: 20px;
+  --r-sm: 9px;
+  --r: 12px;
+  --r-lg: 18px;
   --r-full: 999px;
 
-  --sh-1: 0 1px 2px rgba(16, 23, 37, .06);
-  --sh-2: 0 6px 20px rgba(16, 23, 37, .09);
-  --sh-3: 0 24px 60px rgba(16, 23, 37, .20);
+  --sh-1: 0 1px 2px rgba(22, 19, 14, .05);
+  --sh-2: 0 5px 18px rgba(22, 19, 14, .08);
+  --sh-3: 0 24px 60px rgba(22, 19, 14, .19);
 
   --ff: 'Satoshi', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --ff-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -62,7 +63,7 @@
   --sal: env(safe-area-inset-left, 0px);
   --sar: env(safe-area-inset-right, 0px);
   --kb: 0px;
-  --bar-h: 58px;
+  --bar-h: 62px;
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -115,23 +116,33 @@ a { color: var(--brand-2); text-decoration: none; }
 .appbar {
   position: sticky; top: 0; z-index: 40;
   padding: calc(var(--sat) + 10px) max(14px, var(--sal)) 10px max(14px, var(--sar));
-  background: linear-gradient(180deg, rgba(238, 241, 246, .97) 62%, rgba(238, 241, 246, .78));
+  background: linear-gradient(180deg, rgba(242, 240, 235, .97) 62%, rgba(242, 240, 235, .76));
   backdrop-filter: saturate(160%) blur(14px);
   -webkit-backdrop-filter: saturate(160%) blur(14px);
   border-bottom: 1px solid var(--line);
 }
 .appbar-row { display: flex; align-items: center; gap: 10px; }
 
-.brandmark { display: flex; align-items: center; gap: 9px; min-width: 0; }
-.brandmark svg { width: 26px; height: 26px; flex: none; color: var(--brand-2); }
-.brandmark .bm-t { min-width: 0; }
+/* the lockup is the home button: mark in an ink tile, wordmark beside it */
+.brandmark {
+  display: flex; align-items: center; gap: 9px; min-width: 0;
+  transition: opacity .14s, transform .1s;
+}
+.brandmark:active { transform: scale(.97); opacity: .8 }
+.brandmark .bm-mark {
+  flex: none; width: 30px; height: 30px; border-radius: 9px;
+  display: grid; place-items: center; background: var(--tx); color: #fff;
+}
+.brandmark .bm-mark svg { width: 19px; height: 19px }
+.brandmark .bm-t { min-width: 0; display: flex; flex-direction: column; align-items: flex-start }
 .brandmark .bm-1 {
-  font-size: 14px; font-weight: 700; letter-spacing: -.015em; line-height: 1.1;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-size: 14.5px; font-weight: 750; letter-spacing: -.03em; line-height: 1.05;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--tx);
 }
 .brandmark .bm-2 {
-  font-size: 10.5px; color: var(--tx-3); letter-spacing: .06em; text-transform: uppercase;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-family: var(--ff-mono);
+  font-size: 9px; color: var(--tx-3); letter-spacing: .11em; text-transform: uppercase;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 3px;
 }
 
 .spacer { flex: 1 1 auto; min-width: 4px; }
@@ -145,6 +156,10 @@ a { color: var(--brand-2); text-decoration: none; }
 .iconbtn:hover { background: var(--surf-2); color: var(--tx); }
 .iconbtn svg { width: 18px; height: 18px; }
 .iconbtn.on { color: var(--brand); border-color: rgba(43, 79, 238, .45); background: var(--brand-dim); }
+/* event switcher: a quiet chevron, so the wordmark can own the home action */
+.iconbtn.slim { width: 28px; height: 28px; border: 0; background: transparent; color: var(--tx-3) }
+.iconbtn.slim svg { width: 17px; height: 17px; transform: rotate(90deg) }
+.iconbtn.slim:active { background: var(--tint); color: var(--tx) }
 
 .avatar {
   width: 34px; height: 34px; flex: none; border-radius: var(--r-full);
@@ -183,26 +198,27 @@ a { color: var(--brand-2); text-decoration: none; }
 }
 .daychip { scroll-snap-align: start }
 .dayrail::-webkit-scrollbar { display: none }
+/* the selected day is unmistakable: solid ink fill, not a pale tint */
 .daychip {
-  flex: none; min-width: 62px; padding: 7px 11px 8px;
-  border-radius: var(--r-sm); border: 1px solid var(--line);
-  background: var(--surf); text-align: left;
-  transition: border-color .16s, background .16s, transform .1s;
+  flex: none; min-width: 60px; padding: 6px 11px 7px;
+  border-radius: var(--r-sm); border: 1px solid transparent;
+  background: transparent; text-align: left;
+  transition: background .16s, transform .1s, border-color .16s;
 }
 .daychip:active { transform: scale(.97) }
-.daychip .dc-1 { font-size: 9.5px; font-weight: 700; letter-spacing: .1em; color: var(--tx-3); text-transform: uppercase; }
-.daychip .dc-2 { font-size: 16px; font-weight: 700; letter-spacing: -.02em; line-height: 1.15; margin-top: 1px; }
-.daychip .dc-3 { font-size: 10px; color: var(--tx-3); margin-top: 2px; font-weight: 600; }
-.daychip[aria-selected="true"] {
-  background: var(--brand-dim); border-color: rgba(43, 79, 238, .5);
-}
-.daychip[aria-selected="true"] .dc-1 { color: var(--brand-2) }
-.daychip[aria-selected="true"] .dc-3 { color: var(--brand-2) }
+.daychip .dc-1 { font-family: var(--ff-mono); font-size: 9px; font-weight: 700; letter-spacing: .12em; color: var(--tx-3); text-transform: uppercase; }
+.daychip .dc-2 { font-size: 17px; font-weight: 700; letter-spacing: -.04em; line-height: 1.1; margin-top: 2px; color: var(--tx-2); font-family: var(--ff-mono) }
+.daychip .dc-3 { font-size: 9.5px; color: var(--tx-3); margin-top: 2px; font-weight: 600; }
+.daychip[aria-selected="false"] { border-color: var(--line) }
+.daychip[aria-selected="true"] { background: var(--tx); border-color: var(--tx) }
+.daychip[aria-selected="true"] .dc-1,
+.daychip[aria-selected="true"] .dc-3 { color: rgba(255, 255, 255, .62) }
+.daychip[aria-selected="true"] .dc-2 { color: #fff }
 .daychip.today .dc-1::after {
   content: ''; display: inline-block; width: 4px; height: 4px; border-radius: 50%;
   background: var(--hot); margin-left: 4px; vertical-align: middle;
 }
-.daychip.all { min-width: 50px; }
+.daychip.all { min-width: 48px; }
 
 /* main + tabbar */
 main {
@@ -225,9 +241,12 @@ main {
 }
 .tab {
   flex: 1 1 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 3px; color: var(--tx-3); font-size: 9.5px; font-weight: 650; letter-spacing: 0;
+  gap: 4px; color: var(--tx-3); font-size: 9.5px; font-weight: 650; letter-spacing: 0;
   position: relative; transition: color .16s; min-width: 0;
+  padding-top: 2px;
 }
+/* every tab's icon box is the same height, so the labels share one baseline */
+.tab > span:first-child { height: 30px; display: grid; place-items: center }
 .tab svg { width: 20px; height: 20px; }
 .tab > span:last-child { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
 .tab[aria-selected="true"] { color: var(--tx); }
@@ -241,16 +260,19 @@ main {
   background: var(--dead); color: #fff; font-size: 9.5px; font-weight: 700;
   display: grid; place-items: center; line-height: 1;
 }
-.tab.scan { flex: 0 0 70px; }
+/* Scan is the 4th of six tabs, so a raised centre FAB can never actually sit
+   centred. It keeps the same column width and baseline as every other tab and
+   earns its emphasis from a solid fill instead of breaking the bar. */
+.tab.scan { flex: 1 1 0 }
 .tab.scan .ring {
-  width: 46px; height: 46px; border-radius: var(--r-full); display: grid; place-items: center;
-  background: linear-gradient(145deg, var(--brand) 0%, #2647D6 100%);
-  color: #fff; box-shadow: 0 5px 18px rgba(43, 79, 238, .30), inset 0 1px 0 rgba(255, 255, 255, .2);
-  margin-top: -13px; transition: transform .14s;
+  width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center;
+  background: var(--brand); color: #fff;
+  box-shadow: 0 2px 8px rgba(43, 79, 238, .3);
+  transition: transform .14s, background .14s;
 }
-.tab.scan .ring svg { width: 23px; height: 23px; }
-.tab.scan:active .ring { transform: scale(.93) }
-.tab.scan span { margin-top: -1px }
+.tab.scan .ring svg { width: 18px; height: 18px }
+.tab.scan:active .ring { transform: scale(.9) }
+.tab.scan[aria-selected="true"] .ring { background: var(--brand-2) }
 
 /* ============================================================
    PRIMITIVES
@@ -342,18 +364,25 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
 /* attendee chip: small avatar sitting flush inside the pill */
 .tag > .avatar.xs { width: 14px; height: 14px; font-size: 7.5px; border-radius: 4px; margin-left: -2px; border: 0 }
 
+/* underline tabs, not a grey slab */
 .segs {
-  display: flex; gap: 4px; padding: 3px; border-radius: var(--r-sm);
-  background: var(--ink-2); border: 1px solid var(--line); overflow-x: auto; scrollbar-width: none;
+  display: flex; gap: 18px; padding: 0 2px;
+  border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none;
 }
 .segs::-webkit-scrollbar { display: none }
 .segs button {
-  flex: 1 1 auto; min-width: fit-content; white-space: nowrap;
-  height: 32px; padding: 0 12px; border-radius: 7px;
-  font-size: 12.5px; font-weight: 650; color: var(--tx-3);
-  transition: background .16s, color .16s;
+  flex: none; white-space: nowrap; position: relative;
+  height: 32px; padding: 0 0 8px;
+  font-size: 13px; font-weight: 650; color: var(--tx-3); letter-spacing: -.01em;
+  transition: color .16s;
 }
-.segs button[aria-selected="true"] { background: var(--surf-3); color: var(--tx); box-shadow: var(--sh-1) }
+.segs button::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px;
+  background: var(--tx); border-radius: 2px; transform: scaleX(0); transform-origin: left;
+  transition: transform .2s cubic-bezier(.2, .8, .2, 1);
+}
+.segs button[aria-selected="true"] { color: var(--tx); font-weight: 750 }
+.segs button[aria-selected="true"]::after { transform: scaleX(1) }
 
 /* search */
 /* search + add-by-hand sit on one row so adding a prospect is never buried */
@@ -398,14 +427,22 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
 /* ============================================================
    AGENDA / MEETING CARDS
    ============================================================ */
-.agenda { display: flex; flex-direction: column; }
+/* rows group into sheets; the slot heading sits on the paper above each sheet */
+.agenda { display: flex; flex-direction: column }
+.sheet {
+  background: var(--surf); border: 1px solid var(--line); border-radius: var(--r);
+  overflow: hidden; box-shadow: var(--sh-1);
+}
 
 .slot-h {
-  display: flex; align-items: center; gap: 9px; margin: 16px 2px 8px;
+  display: flex; align-items: center; gap: 10px; margin: 20px 3px 8px;
 }
-.slot-h:first-child { margin-top: 2px }
-.slot-h .t { font-family: var(--ff-mono); font-size: 12.5px; font-weight: 700; color: var(--tx-2); letter-spacing: -.02em; flex: none }
-.slot-h .ln { flex: 1; height: 1px; background: var(--line) }
+.slot-h:first-child { margin-top: 0 }
+.slot-h .t {
+  font-family: var(--ff-mono); font-size: 10.5px; font-weight: 700; color: var(--tx-2);
+  letter-spacing: .1em; flex: none; text-transform: uppercase;
+}
+.slot-h .ln { flex: 1; height: 1px; background: var(--line-2); opacity: .7 }
 .slot-h.now .t { color: var(--hot) }
 .slot-h.now .ln { background: linear-gradient(90deg, var(--hot), transparent) }
 .slot-h.now .live {
@@ -421,8 +458,11 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
 }
 .wkstat b { color: var(--tx); font-weight: 700 }
 .wkstat .sep { width: 1px; height: 11px; background: var(--line-2) }
-.wkrow { margin-bottom: 10px }
-.wkrow .mtg { margin-bottom: 0; border-bottom-left-radius: 0; border-bottom-right-radius: 0 }
+.wkrow {
+  margin-bottom: 10px; border: 1px solid var(--line); border-radius: var(--r);
+  overflow: hidden; background: var(--surf); box-shadow: var(--sh-1);
+}
+.wkrow .mtg { border-top: 0 }
 .wkout {
   display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%;
   padding: 9px; font-size: 12.5px; font-weight: 700; letter-spacing: .01em;
@@ -435,47 +475,66 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
 .wkout:active { background: rgba(43, 79, 238, .17) }
 .wkrow.done .wkout { color: var(--tx-2); background: var(--surf-3) }
 
+/* A printed schedule, not a stack of floating cards: one white sheet per
+   time slot, rows divided by hairlines, colour reserved for outcomes. */
 .mtg {
-  display: flex; gap: 11px; align-items: stretch; width: 100%; text-align: left;
-  padding: 12px 13px; border-radius: var(--r); margin-bottom: 8px;
-  background: var(--surf); border: 1px solid var(--line);
-  transition: border-color .16s, background .16s, transform .1s;
-  position: relative; overflow: hidden;
+  display: flex; gap: 12px; align-items: flex-start; width: 100%; text-align: left;
+  padding: 13px 14px 13px 15px;
+  background: var(--surf); border: 0; border-top: 1px solid var(--line);
+  transition: background .16s;
+  position: relative;
 }
-.mtg:active { transform: scale(.993) }
+.mtg:first-of-type { border-top: 0 }
+.mtg:active { background: var(--surf-2) }
 .mtg::before {
-  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: transparent;
+  content: ''; position: absolute; left: 0; top: -1px; bottom: 0; width: 3px; background: transparent;
 }
+/* your own meetings get a quiet spine instead of a "Mine" pill */
+.mtg[data-mine="1"]::before { background: var(--line-2) }
 .mtg[data-outcome="deal"]::before { background: var(--deal) }
 .mtg[data-outcome="hot"]::before { background: var(--hot) }
 .mtg[data-outcome="nurture"]::before { background: var(--nurture) }
 .mtg[data-outcome="no_deal"]::before, .mtg[data-outcome="unqualified"]::before { background: var(--dead) }
-.mtg[data-live="1"] {
-  border-color: rgba(181, 115, 11, .45);
-  box-shadow: 0 0 0 1px rgba(181, 115, 11, .22), 0 8px 22px rgba(16, 23, 37, .12);
-}
-.mtg[data-live="1"]::before { background: var(--hot) }
-.mtg[data-done="1"] { opacity: .62 }
-.mtg[data-done="1"]:hover { opacity: 1 }
+.mtg[data-live="1"] { background: rgba(181, 115, 11, .055) }
+.mtg[data-live="1"]::before { background: var(--hot); width: 3px }
+.mtg[data-done="1"] .co, .mtg[data-done="1"] .pr, .mtg[data-done="1"] .tcol { opacity: .55 }
 
-.mtg .tcol { flex: none; width: 46px; padding-top: 1px }
-.mtg .tcol .hm { font-family: var(--ff-mono); font-size: 14px; font-weight: 700; letter-spacing: -.04em; line-height: 1.15 }
-.mtg .tcol .ap { font-size: 9.5px; font-weight: 700; color: var(--tx-3); letter-spacing: .06em; margin-top: 1px }
-.mtg .tcol .nt { font-size: 9.5px; font-weight: 700; color: var(--tx-3); margin-top: 3px }
+.mtg .tcol {
+  flex: none; width: 44px; display: flex; flex-direction: column;
+  align-items: flex-start; padding-top: 2px;
+}
+.mtg .tcol .hm {
+  font-family: var(--ff-mono); font-size: 15px; font-weight: 700;
+  letter-spacing: -.05em; line-height: 1; font-variant-numeric: tabular-nums;
+}
+.mtg .tcol .ap {
+  font-family: var(--ff-mono); font-size: 9px; font-weight: 500; color: var(--tx-3);
+  letter-spacing: .1em; margin-top: 3px;
+}
 
 .mtg .body { flex: 1 1 auto; min-width: 0 }
 .mtg .co {
-  font-size: 15px; font-weight: 700; letter-spacing: -.017em; line-height: 1.25;
-  display: flex; align-items: center; gap: 6px;
+  font-size: 15.5px; font-weight: 700; letter-spacing: -.022em; line-height: 1.2;
+  display: flex; align-items: center; gap: 6px; color: var(--tx);
 }
 .mtg .co .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.mtg .co .pri {
+  flex: none; width: 5px; height: 5px; border-radius: 50%; background: var(--hot);
+  box-shadow: 0 0 0 2.5px var(--hot-dim);
+}
 .mtg .pr {
-  font-size: 12.5px; color: var(--tx-2); margin-top: 2px; line-height: 1.35;
+  font-size: 12.5px; color: var(--tx-2); margin-top: 3px; line-height: 1.3;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.mtg .meta { display: flex; align-items: center; gap: 5px; margin-top: 7px; flex-wrap: wrap }
-.mtg .chev { flex: none; align-self: center; color: var(--tx-3) }
-.mtg .chev svg { width: 17px; height: 17px }
+/* categorical facts as quiet small caps, not bordered chips */
+.mtg .facts {
+  display: block; margin-top: 5px; font-size: 9.5px; font-weight: 700;
+  letter-spacing: .085em; text-transform: uppercase; color: var(--tx-3);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.mtg .facts i { font-style: normal; opacity: .45; margin: 0 5px }
+.mtg .meta { display: flex; align-items: center; gap: 5px; margin-top: 8px; flex-wrap: wrap }
+.mtg .rcol { flex: none; display: flex; align-items: center; padding-top: 1px; min-height: 20px }
 
 .statedot { width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--line-2) }
 .statedot.met { background: var(--deal) }
@@ -504,7 +563,31 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
 .nowcard .acts .btn { flex: 1 1 0 }
 
 /* progress */
-.prog { height: 5px; border-radius: var(--r-full); background: var(--surf-3); overflow: hidden; display: flex }
+/* day summary: a hairline ledger line under the rail, not a boxed widget */
+.daysum { margin: 0 2px 20px }
+.daysum .prog { height: 3px; border-radius: 2px }
+.daysum .ln {
+  display: flex; align-items: baseline; gap: 7px; margin-top: 8px;
+}
+.daysum .ln .n {
+  font-family: var(--ff-mono); font-size: 15px; font-weight: 700;
+  letter-spacing: -.05em; color: var(--tx); font-variant-numeric: tabular-nums;
+}
+.daysum .ln .n i { font-style: normal; color: var(--tx-3); font-weight: 500 }
+.daysum .ln .lb {
+  font-size: 9.5px; font-weight: 700; letter-spacing: .09em;
+  text-transform: uppercase; color: var(--tx-3);
+}
+.daysum .ln .sp { flex: 1 }
+.daysum .ln .k {
+  font-size: 10px; font-weight: 750; letter-spacing: .04em;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.daysum .ln .k::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor }
+.daysum .ln .k.deal { color: var(--deal) }
+.daysum .ln .k.hot { color: var(--hot) }
+
+.prog { height: 5px; border-radius: var(--r-full); background: var(--track); overflow: hidden; display: flex }
 .prog i { display: block; height: 100%; transition: width .5s cubic-bezier(.4, 0, .2, 1) }
 .prog i.d { background: var(--deal) } .prog i.h { background: var(--hot) }
 .prog i.n { background: var(--nurture) } .prog i.x { background: var(--dead) }

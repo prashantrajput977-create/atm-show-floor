@@ -143,7 +143,13 @@ $$('.tab').forEach(t => t.onclick = () => {
   UI.buzz(8);
 });
 $('#meBtn').onclick = () => { V.tab = 'me'; render(); renderDayRail(); };
+$('#evBtn').innerHTML = I.chev;
 $('#evBtn').onclick = () => Views.openSwitchEvent();
+/* the wordmark behaves like a logo: always returns to today */
+$('#homeBtn').onclick = () => {
+  V.tab = 'today'; V.day = UI.nowInTz().date; V.q = '';
+  renderDayRail(); render(); window.scrollTo({ top: 0, behavior: 'smooth' }); UI.buzz(8);
+};
 $('#syncPill').onclick = () => {
   if (!navigator.onLine) return toast('Still offline. Everything you do is saved and will sync.', { kind: 'warn' });
   toast(S.pending ? `Pushing ${S.pending} change${S.pending === 1 ? '' : 's'}` : 'Refreshing');
@@ -192,6 +198,10 @@ document.addEventListener('click', async e => {
     editLead: () => Views.openEditLead(id),
     editMeeting: () => Views.openEditMeeting(id),
     addMeeting: () => Views.openAddMeeting(),
+    retryLoad: () => {
+      toast('Reloading the schedule');
+      Store.loadAll({ fromCache: false }).then(() => { renderDayRail(); render(); });
+    },
     addEvent: () => Views.openAddEvent(),
     switchEvent: () => Views.openSwitchEvent(),
     pickEvent: () => Views.doSwitchEvent(id),
