@@ -466,12 +466,12 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
 .lbrow:last-child { border-bottom: 0 }
 .lbrow .rk { font-family: var(--ff-mono); font-size: 11.5px; font-weight: 700; color: var(--tx-3); width: 15px; flex: none }
 .lbrow .who { flex: 1 1 auto; min-width: 0 }
-.lbrow .who .n { font-size: 14px; font-weight: 650; letter-spacing: -.012em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
-.lbrow .who .s { font-size: 11px; color: var(--tx-3); margin-top: 1px }
+.lbrow .who .n { display: block; font-size: 14px; font-weight: 650; letter-spacing: -.012em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.lbrow .who .s { display: block; font-size: 11px; color: var(--tx-3); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
 .lbrow .who .prog { margin-top: 6px }
 .lbrow .nums { flex: none; text-align: right }
-.lbrow .nums .big { font-family: var(--ff-mono); font-size: 17px; font-weight: 700; letter-spacing: -.035em }
-.lbrow .nums .sm { font-size: 10px; color: var(--tx-3); font-weight: 650; letter-spacing: .03em }
+.lbrow .nums .big { display: block; font-family: var(--ff-mono); font-size: 17px; font-weight: 700; letter-spacing: -.035em; line-height: 1.1 }
+.lbrow .nums .sm { display: block; font-size: 10px; color: var(--tx-3); font-weight: 650; letter-spacing: .03em; margin-top: 1px }
 .lbrow.me { background: var(--brand-dim) }
 
 .bars { padding: 13px }
@@ -583,8 +583,8 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
 .outbtn:active { transform: scale(.97) }
 .outbtn .oi { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; margin-bottom: 8px }
 .outbtn .oi svg { width: 15px; height: 15px }
-.outbtn .ot { font-size: 14px; font-weight: 700; letter-spacing: -.015em }
-.outbtn .od { font-size: 11px; color: var(--tx-3); margin-top: 2px; line-height: 1.35 }
+.outbtn .ot { display: block; font-size: 14px; font-weight: 700; letter-spacing: -.015em }
+.outbtn .od { display: block; font-size: 11px; color: var(--tx-3); margin-top: 3px; line-height: 1.35 }
 .outbtn[data-v="deal"] .oi { background: var(--deal-dim); color: var(--deal) }
 .outbtn[data-v="hot"] .oi { background: var(--hot-dim); color: var(--hot) }
 .outbtn[data-v="nurture"] .oi { background: var(--nurture-dim); color: var(--nurture) }
@@ -604,8 +604,8 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
 .drow .di { width: 30px; height: 30px; border-radius: 9px; flex: none; display: grid; place-items: center; background: var(--surf-2); color: var(--tx-3) }
 .drow .di svg { width: 15px; height: 15px }
 .drow .dv { flex: 1 1 auto; min-width: 0 }
-.drow .dv .k { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--tx-3) }
-.drow .dv .v { font-size: 14px; margin-top: 1px; word-break: break-word }
+.drow .dv .k { display: block; font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--tx-3) }
+.drow .dv .v { display: block; font-size: 14px; margin-top: 2px; word-break: break-word }
 .drow .dv .v.mut { color: var(--tx-3) }
 .drow .da { flex: none; display: flex; gap: 6px }
 .drow .da .iconbtn { width: 34px; height: 34px }
@@ -665,8 +665,8 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
 .matchopt .mi { width: 26px; height: 26px; border-radius: 7px; flex: none; display: grid; place-items: center; background: var(--surf-3); color: var(--tx-3) }
 .matchopt .mi svg { width: 14px; height: 14px }
 .matchopt .mb { flex: 1 1 auto; min-width: 0 }
-.matchopt .mb .m1 { font-size: 13.5px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
-.matchopt .mb .m2 { font-size: 11px; color: var(--tx-3); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.matchopt .mb .m1 { display: block; font-size: 13.5px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.matchopt .mb .m2 { display: block; font-size: 11px; color: var(--tx-3); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
 
 /* ============================================================
    AUTH
