@@ -1094,7 +1094,7 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
 /* The skyline sits under the fold on the phone. The form is lifted clear of
    it and the band is masked to nothing where they could ever meet. */
 .authwrap::after {
-  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 33dvh;
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 30dvh;
   pointer-events: none; opacity: .82; filter: saturate(.8) contrast(.97);
   background:
     linear-gradient(to bottom, rgba(242, 240, 235, .78) 0%, rgba(242, 240, 235, .2) 42%, rgba(242, 240, 235, .5) 100%),
@@ -1106,7 +1106,7 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
 .authpane {
   flex: 1 1 auto; min-width: 0; position: relative; z-index: 1;
   display: flex; flex-direction: column; justify-content: center; align-items: center;
-  padding: calc(var(--sat) + 26px) max(20px, var(--sal)) calc(var(--sab) + 22px + 15dvh) max(20px, var(--sar));
+  padding: calc(var(--sat) + 26px) max(20px, var(--sal)) calc(var(--sab) + 22px + 26dvh) max(20px, var(--sar));
 }
 
 /* the same skyline closes the You tab, where the page simply ran out */
@@ -1157,6 +1157,15 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
 /* the group endorsement, set small and quiet at the very bottom */
 .ac-endorse { margin-top: 26px; color: var(--tx-3); opacity: .6; line-height: 0 }
 .ac-endorse svg { height: 26px; width: auto; max-width: none }
+
+/* the group marks keep a paper cushion so the skyline never sits behind them */
+@media (max-width: 899px) {
+  .ac-endorse {
+    position: relative; z-index: 1;
+    margin: 26px -50vw 0 -50vw; padding: 20px 50vw 12px 50vw;
+    background: linear-gradient(to bottom, rgba(242, 240, 235, 0), rgba(242, 240, 235, .94) 52%);
+  }
+}
 
 /* ---------- login, wide ---------- */
 @media (min-width: 900px) {
