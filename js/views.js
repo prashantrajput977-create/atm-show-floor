@@ -476,7 +476,7 @@ function viewBoard() {
 
   <div class="kpis">
     <div class="kpi brand"><div class="k">Meetings</div><div class="v tnum">${mtgs.length}</div><div class="d">${logged.length} logged, ${mtgs.length - logged.length} open</div></div>
-    <div class="kpi deal"><div class="k">Deals created</div><div class="v tnum">${deals.length}</div><div class="d">${dealVal ? UI.money(dealVal) + ' in play' : 'add a value when you log one'}</div></div>
+    <div class="kpi deal"><div class="k">Deals created</div><div class="v tnum">${deals.length}</div><div class="d">${deals.length ? UI.money(dealVal) + ' in play' : 'none recorded yet'}</div></div>
     <div class="kpi hot"><div class="k">Still in play</div><div class="v tnum">${open.length}</div><div class="d">${openVal ? UI.money(openVal) + ' behind them' : 'future and nurture'}</div></div>
     <div class="kpi bad"><div class="k">Closed out</div><div class="v tnum">${dropped.length + missed.length}</div><div class="d">${dropped.length} dropped, ${missed.length} no show</div></div>
   </div>
@@ -495,7 +495,7 @@ function viewBoard() {
     <div class="sec-h"><h2>Live activity</h2></div>
     <div class="card feed">
       ${S.activity.length ? S.activity.slice(0, 26).map(feedRow).join('')
-        : `<div class="hint" style="padding:16px;text-align:center">Nothing logged yet. It shows up here the moment anyone calls an outcome.</div>`}
+        : `<div class="hint" style="padding:16px;text-align:center">Nothing logged yet. Outcomes appear here the second anyone records one.</div>`}
     </div>
   </div>`;
 }
@@ -569,7 +569,7 @@ function ledgerBlock(mtgs, logged) {
         ${r.n ? I.chev : ''}
       </button>`).join('')}
     </div>
-    ${logged.length < mtgs.length ? `<p class="hint" style="margin:8px 2px 0">${mtgs.length - logged.length} meeting${mtgs.length - logged.length === 1 ? '' : 's'} still without a call. Every one of them is invisible to the pipeline until someone logs it.</p>` : ''}
+    ${logged.length < mtgs.length ? `<p class="hint" style="margin:8px 2px 0">${mtgs.length - logged.length} meeting${mtgs.length - logged.length === 1 ? '' : 's'} still without an outcome. Each one stays invisible to the pipeline until someone records it.</p>` : ''}
   </div>`;
 }
 
@@ -633,7 +633,7 @@ function sourceBlock(mtgs, leads) {
       <div class="srow foot">
         <span class="s-1">Cards captured<i>${scanned} read by the scanner, ${Math.max(0, leads.length - scanned)} typed by hand</i></span>
         <span class="s-n tnum">${leads.length}</span>
-        <span class="s-n">·</span><span class="s-n">·</span><span class="s-n">·</span>
+        <span class="s-n"></span><span class="s-n"></span><span class="s-n"></span>
       </div>
     </div>
     ${keys.length === 1 && keys[0] === 'sheet'
