@@ -1319,6 +1319,20 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
     padding: 26px 18px 22px;
     background: var(--ink-2); border-right: 1px solid var(--line);
   }
+  /* Dubai Marina sits in the dead space under the nav. It is masked to nothing
+     at both ends and veiled in paper, so no label ever lands on the photo. */
+  .rail::after {
+    content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 58%;
+    background:
+      linear-gradient(to bottom, rgba(249, 248, 244, .62) 0%, rgba(249, 248, 244, .2) 34%, rgba(249, 248, 244, .34) 100%),
+      url('../brand/dubai-rail.webp') center 34% / cover no-repeat;
+    opacity: .62; filter: saturate(.78) contrast(.96);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, .34) 16%, #000 46%, #000 82%, transparent 99%);
+    mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, .34) 16%, #000 46%, #000 82%, transparent 99%);
+    pointer-events: none; z-index: 0;
+  }
+  .rail > * { position: relative; z-index: 1 }
+  .rail-foot { text-shadow: 0 1px 0 rgba(249, 248, 244, .9) }
 
   .rail-brand {
     display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
