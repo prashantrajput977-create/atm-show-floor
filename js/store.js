@@ -124,13 +124,29 @@ async function signIn(email, password) {
   throw last;
 }
 async function signOut() {
-  try { await SB.auth.signOut(); } catch (e) { /* ignore */ }
-  S.session = null; S.me = null;
+  /* On a phone the sign-out call can hang on a dying hotspot, and if it
+     never returns the token stays on the device and you are still signed
+     in. So: local scope, a hard time limit, then wipe the token by hand
+     whatever happened. */
   try {
-    await IDB.del('snapshot'); await IDB.qClear();
-    Object.keys(localStorage).filter(k => k.startsWith('sf_')).forEach(k => localStorage.removeItem(k));
+    await Promise.race([
+      SB.auth.signOut({ scope: 'local' }),
+      new Promise(r => setTimeout(r, 2500))
+    ]);
   } catch (e) { /* ignore */ }
-  location.reload();
+  S.session = null; S.me = null;
+  const wipe = st => {
+    try {
+      Object.keys(st)
+        .filter(k => k.startsWith('sf_') || k.startsWith('sb-') || k.indexOf('supabase') > -1)
+        .forEach(k => st.removeItem(k));
+    } catch (e) { /* ignore */ }
+  };
+  wipe(window.localStorage);
+  try { wipe(window.sessionStorage); } catch (e) { /* ignore */ }
+  try { await IDB.del('snapshot'); await IDB.qClear(); } catch (e) { /* ignore */ }
+  /* replace, not reload, so a back swipe cannot land on the signed-in page */
+  try { location.replace(location.pathname); } catch (e) { location.reload(); }
 }
 async function getSession() {
   const { data } = await SB.auth.getSession();
