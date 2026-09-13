@@ -608,15 +608,23 @@ function dealsBlock(deals) {
   return `<div class="sec">
     <div class="sec-h"><h2>Deals created</h2><span class="count">${deals.length}</span></div>
     <div class="card dlist">
-      ${sorted.map(m => `<button class="dealrow" data-act="meeting" data-id="${m.id}">
+      ${sorted.map(m => {
+        /* a deal can be a meeting or a standalone card, and they read differently */
+        const isCard = !m.company_name && !m.meeting_date;
+        const who = isCard
+          ? (UI.memberById(m.captured_by)?.short_name || 'Someone')
+          : (m.owner_name || 'Unassigned');
+        const route = isCard ? 'Card only' : (SOURCES[m.source]?.label || 'Booked meeting');
+        return `<button class="dealrow" data-act="${isCard ? 'lead' : 'meeting'}" data-id="${m.id}">
         <span class="dl-t">
-          <span class="dl-1">${UI.esc(m.company_name || 'Unnamed')}</span>
-          <span class="dl-2">${UI.esc(m.owner_name || 'Unassigned')} · ${UI.esc(SOURCES[m.source]?.label || 'Booked meeting')}${m.geo_region ? ' · ' + UI.esc(m.geo_region) : ''}</span>
+          <span class="dl-1">${UI.esc(m.company || m.company_name || m.full_name || 'Unnamed')}</span>
+          <span class="dl-2">${UI.esc(who)} · ${UI.esc(route)}${m.geo_region ? ' · ' + UI.esc(m.geo_region) : ''}</span>
           ${m.next_step ? `<span class="dl-3">${I.target}${UI.esc(m.next_step)}</span>` : ''}
         </span>
         <span class="dl-v tnum">${m.deal_value_usd ? UI.money(m.deal_value_usd) : '—'}</span>
         ${I.chev}
-      </button>`).join('')}
+      </button>`;
+      }).join('')}
     </div>
   </div>`;
 }
