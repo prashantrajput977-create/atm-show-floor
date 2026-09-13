@@ -410,7 +410,7 @@ document.addEventListener('click', async e => {
     nudgeMet: async () => {
       const m = S.meetings.find(x => x.id === id);
       if (!m) return;
-      Views.nudgeClear(id);
+      Views.nudgeHold(id, 20);
       await Store.updateMeeting(id, {
         status: 'met', met_at: m.met_at || new Date().toISOString(), updated_at: new Date().toISOString()
       }, { activity: { kind: 'status_met', summary: `marked ${m.company_name} turned up` } });

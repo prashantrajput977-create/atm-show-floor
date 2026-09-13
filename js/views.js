@@ -1617,6 +1617,14 @@ function nudgeLater(id) {
   return mins;
 }
 function nudgeClear(id) { const o = nRead(); delete o[id]; nWrite(o); }
+/* Answering step one and then backing out of step two should not bounce the
+   same card straight back at you. */
+function nudgeHold(id, mins = 20) {
+  const o = nRead();
+  const e = o[id] || { n: 0 };
+  e.until = Date.now() + mins * 60000;
+  o[id] = e; nWrite(o);
+}
 
 /* Only the person who was actually in the room gets asked. Reps book the
    meeting, they do not sit in it, so nudging them would be pure noise. */
@@ -1647,11 +1655,14 @@ function paintNudge() {
   }
   const m = q[0];
   const more = q.length - 1;
-  if (el.dataset.nid === m.id) {
+  if (el.dataset.nid === m.id && el.querySelector('.nudge')) {
     const c = el.querySelector('.nd-more');
     if (c) { c.textContent = more ? `${more} more waiting` : ''; c.hidden = !more; }
+    el.hidden = false;
+    el.classList.add('on');
     return;
   }
+  const fresh = el.dataset.nid !== m.id;
   el.dataset.nid = m.id;
   el.innerHTML = `<div class="nudge">
     <div class="nd-h"><span class="nd-dot"></span>Just wrapped · ${UI.esc(UI.fmtTimeStr(m.meeting_time))}
@@ -1665,8 +1676,10 @@ function paintNudge() {
     <div class="nd-more"${more ? '' : ' hidden'}>${more ? more + ' more waiting' : ''}</div>
   </div>`;
   el.hidden = false;
-  requestAnimationFrame(() => el.classList.add('on'));
-  UI.buzz(12);
+  void el.offsetHeight;                    /* commit the start state, then animate */
+  requestAnimationFrame(() => { el.classList.add('on'); });
+  setTimeout(() => el.classList.add('on'), 60);   /* belt and braces: never stick at zero */
+  if (fresh) UI.buzz(12);
 }
 
 /* ============================================================
@@ -1841,5 +1854,5 @@ window.Views = {
   openMeeting, openOutcome, openOutcomeList, openLead, openEditLead, openAddMeeting, openEditMeeting,
   openAddEvent, openSwitchEvent, doSwitchEvent, openTeam, openLinkMeeting,
   matchMeetings, leadCard, hydrateThumbs, scoped, dayFilter, defaultDay,
-  paintNudge, nudgeQueue, nudgeLater, nudgeClear, openWrap, digestText, dayStats
+  paintNudge, nudgeQueue, nudgeLater, nudgeClear, nudgeHold, openWrap, digestText, dayStats
 };
