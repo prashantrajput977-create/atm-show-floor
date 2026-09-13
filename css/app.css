@@ -776,16 +776,18 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
    SCAN
    ============================================================ */
 .scanhero {
-  border-radius: var(--r-lg); padding: 22px 18px; text-align: center; margin-bottom: 14px;
-  background:
-    radial-gradient(130% 120% at 50% 0%, rgba(43, 79, 238, .10) 0%, transparent 62%),
-    linear-gradient(170deg, var(--surf-2) 0%, var(--surf) 100%);
-  border: 1px solid var(--line-2);
+  border-radius: var(--r); padding: 24px 18px 20px; text-align: center; margin-bottom: 12px;
+  background: var(--surf); border: 1px solid var(--line); box-shadow: var(--sh-1);
 }
-.scanhero .ill { width: 74px; height: 74px; margin: 0 auto 14px; color: var(--brand-2) }
-.scanhero h2 { margin: 0; font-size: 20px; font-weight: 750; letter-spacing: -.03em }
-.scanhero p { margin: 6px auto 0; font-size: 13px; color: var(--tx-2); max-width: 32ch; line-height: 1.5 }
-.scanhero .acts { display: flex; flex-direction: column; gap: 9px; margin-top: 18px }
+/* a contained tile, not a floating oversized glyph on a blue wash */
+.scanhero .ill {
+  width: 52px; height: 52px; margin: 0 auto 14px; border-radius: 14px;
+  display: grid; place-items: center; background: var(--tx); color: #fff;
+}
+.scanhero .ill svg { width: 24px; height: 24px }
+.scanhero h2 { margin: 0; font-size: 19px; font-weight: 750; letter-spacing: -.03em }
+.scanhero p { margin: 7px auto 0; font-size: 13px; color: var(--tx-2); max-width: 30ch; line-height: 1.5 }
+.scanhero .acts { display: flex; flex-direction: column; gap: 9px; margin-top: 20px }
 
 .cardprev { position: relative; border-radius: var(--r); overflow: hidden; border: 1px solid var(--line-2); margin-bottom: 13px; background: var(--ink) }
 .cardprev img { width: 100%; max-height: 220px; object-fit: contain; background: var(--surf-3) }

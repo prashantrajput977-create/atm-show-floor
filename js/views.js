@@ -295,7 +295,7 @@ function viewLeads() {
   let html = `
   <div class="leadtop">
     <div class="searchwrap">${I.search}
-      <input class="input" id="leadQ" type="search" placeholder="Search name, company, email" value="${UI.esc(V.q)}"
+      <input class="input" id="leadQ" type="search" placeholder="Search prospects" value="${UI.esc(V.q)}"
         autocomplete="off" autocapitalize="none" spellcheck="false">
       ${V.q ? `<button class="clr" data-act="clearQ" aria-label="Clear">${I.x}</button>` : ''}
     </div>
