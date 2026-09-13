@@ -156,7 +156,7 @@ function viewToday() {
     <button role="tab" data-scope="team" aria-selected="${V.scope === 'team'}">Whole team · ${teamN}</button>
   </div>`;
 
-  if (live) html += nowCard(live, 'In progress now');
+  if (live) html += nowCard(live, 'On now');
   else if (next) html += nowCard(next, 'Up next');
 
   if (sorted.length) {
@@ -243,7 +243,7 @@ function nowCard(m, label) {
     </div>
     <div class="acts">
       <button class="btn primary" data-act="outcome" data-id="${m.id}">${I.check}${m.outcome ? 'Update call' : 'Log outcome'}</button>
-      <button class="btn" data-act="scanFor" data-id="${m.id}">${I.card}Scan card</button>
+      <button class="btn" data-act="voice" data-id="${m.id}" data-tb="ev_meetings">${I.mic}${m.voice_note_path ? 'Re-record' : 'Record'}</button>
     </div>
   </div>`;
 }
@@ -982,10 +982,7 @@ function openMeeting(id) {
     <div style="display:flex;flex-direction:column;gap:9px;margin:14px 0 16px">
       <button class="btn primary block" data-act="outcome" data-id="${m.id}"
         ${m.status === 'rescheduled' || m.status === 'cancelled' ? 'disabled' : ''}>${I.check}${m.outcome ? 'Update the outcome' : 'Log the outcome'}</button>
-      <div style="display:flex;gap:9px">
-        <button class="btn" style="flex:1" data-act="scanFor" data-id="${m.id}">${I.card}Scan card</button>
-        <button class="btn" style="flex:1" data-act="editMeeting" data-id="${m.id}">${I.edit}Edit</button>
-      </div>
+      <button class="btn block" data-act="editMeeting" data-id="${m.id}">${I.edit}Edit this meeting</button>
       ${isDone(m) || m.outcome_notes ? `<button class="btn ghost block" data-act="resetMeeting" data-id="${m.id}">${I.undo}Reset this record</button>` : ''}
     </div>
 

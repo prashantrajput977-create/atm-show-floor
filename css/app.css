@@ -643,18 +643,20 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
 /* now banner */
 .nowcard {
   position: relative; overflow: hidden;
-  padding: 15px 16px; border-radius: var(--r-lg); margin-bottom: 18px;
-  background:
-    radial-gradient(120% 140% at 0% 0%, rgba(181, 115, 11, .09) 0%, transparent 58%),
-    linear-gradient(155deg, var(--surf-2) 0%, var(--surf) 100%);
-  border: 1px solid rgba(181, 115, 11, .3);
-  box-shadow: var(--sh-2);
+  padding: 14px 16px 15px; border-radius: var(--r-lg); margin-bottom: 18px;
+  background: var(--surf);
+  border: 1px solid var(--line-2);
+  box-shadow: var(--sh-1);
+}
+.nowcard::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--hot);
 }
 .nowcard .lbl {
-  display: flex; align-items: center; gap: 7px; margin-bottom: 9px;
-  font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--hot);
+  display: flex; align-items: center; gap: 6px; margin-bottom: 7px;
+  font-family: var(--ff-mono); font-size: 10.5px; font-weight: 700;
+  letter-spacing: .05em; text-transform: uppercase; color: var(--hot);
 }
-.nowcard .lbl .bl { width: 7px; height: 7px; border-radius: 50%; background: var(--hot); animation: pulse 1.6s ease-in-out infinite }
+.nowcard .lbl .bl { width: 5px; height: 5px; border-radius: 50%; background: var(--hot) }
 .nowcard h3 { margin: 0; font-size: 19px; font-weight: 750; letter-spacing: -.028em; line-height: 1.2 }
 .nowcard .sub { font-size: 13px; color: var(--tx-2); margin-top: 3px }
 .nowcard .acts { display: flex; gap: 8px; margin-top: 14px }
