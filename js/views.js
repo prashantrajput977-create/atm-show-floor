@@ -1318,6 +1318,13 @@ function render() {
   const main = UI.$('#main');
   const map = { today: viewToday, agenda: viewAgenda, leads: viewLeads, walkins: viewWalkins, scan: viewScan, board: viewBoard, me: viewMe };
   const fn = map[V.tab] || viewToday;
+  /* Mid-sync with nothing in hand, an empty state reads as lost data. Skeletons
+     say "still coming" instead. */
+  if (!S.ready || (S.net === 'syncing' && !S.meetings.length && !S.leads.length)) {
+    main.innerHTML = `<div class="page">${UI.skeletons(5)}</div>`;
+    UI.$$('.tab').forEach(t => t.setAttribute('aria-selected', String(t.dataset.t === V.tab)));
+    return;
+  }
   /* A throw inside one view used to leave the last screen on display, so the
      tab looked broken with no clue why. Now it says so, on screen. */
   try {

@@ -217,7 +217,36 @@ async function loadEventData() {
   S.leads = l.data || [];
   S.activity = a.error ? [] : (a.data || []);
   S.loadFailed = false;
+  S.syncedAt = Date.now();
 }
+
+/* A phone that sleeps kills the realtime socket without firing 'offline', so the
+   app came back showing whatever it held when the screen went dark. Every return
+   to the foreground re-checks the socket and refetches if the data is stale. */
+let resuming = false;
+async function resume(force = false) {
+  if (resuming || document.hidden || !S.eventId) return;
+  if (!navigator.onLine) { setNet('offline'); return; }
+  const stale = !S.syncedAt || Date.now() - S.syncedAt > 20000;
+  if (!force && !stale && chanState === 'SUBSCRIBED') return;
+  resuming = true;
+  setNet('syncing');
+  try {
+    if (chanState !== 'SUBSCRIBED') subscribe();
+    await loadEventData();
+    setNet('live');
+    bus.emit('data');
+    saveSnapshot();
+  } catch (e) {
+    console.error('resume', e);
+    setNet(navigator.onLine ? 'live' : 'offline');
+  } finally { resuming = false; }
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) resume(); });
+window.addEventListener('pageshow', e => { if (e.persisted) resume(true); });
+window.addEventListener('focus', () => resume());
+/* silent socket death shows up as nothing at all, so poll the state while visible */
+setInterval(() => { if (!document.hidden && S.eventId) resume(); }, 60000);
 
 async function switchEvent(id) {
   S.eventId = id;
@@ -240,7 +269,7 @@ async function saveSnapshot() {
 }
 
 /* ---------------- realtime ---------------- */
-let chan = null;
+let chan = null, chanState = '';
 function subscribe() {
   if (!S.eventId) return;
   if (chan) { try { SB.removeChannel(chan); } catch (e) {} chan = null; }
@@ -254,7 +283,7 @@ function subscribe() {
         bus.emit('data'); bus.emit('remote', p.new);
       }
     })
-    .subscribe();
+    .subscribe(st => { chanState = st; });
 }
 function merge(key, p) {
   const arr = S[key];
@@ -506,7 +535,7 @@ setInterval(() => { if (navigator.onLine && S.pending) flush(); }, 20000);
 
 window.Store = {
   SB, bus, S, IDB, uuid,
-  signIn, signOut, getSession, loadMe, loadAll, loadEventData, switchEvent,
+  signIn, signOut, getSession, loadMe, loadAll, loadEventData, resume, switchEvent,
   updateMeeting, addMeeting, saveLead, updateLead, deleteLead, addEvent, log,
   flush, thumb, ocrCheck, ocrRemote
 };
