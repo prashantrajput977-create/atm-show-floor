@@ -170,7 +170,7 @@ function confirmSheet({ title, sub, body, ok = 'Confirm', danger = false }) {
 function tagFor(outcome) {
   if (!outcome) return '';
   const o = OUT_MAP[outcome];
-  return `<span class="tag ${outcome}">${esc(o ? o.label : outcome)}</span>`;
+  return `<span class="tag t-${o ? o.tone : 'mute'}">${esc(o ? o.short : outcome)}</span>`;
 }
 function money(n) {
   if (n == null || n === '' || isNaN(n)) return '';

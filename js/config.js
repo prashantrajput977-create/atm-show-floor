@@ -11,14 +11,30 @@ window.CFG = {
 };
 
 /* Outcome vocabulary — one shared source of truth for colour + copy */
+/* Six calls, in pipeline order. `grp` drives the dashboard ledger and the
+   leaderboard bars: created, open, missed, dropped. */
 window.OUTCOMES = [
-  { v: 'deal',        label: 'Deal',        desc: 'Commercial intent, moving to contract', icon: 'handshake' },
-  { v: 'hot',         label: 'Hot',         desc: 'Strong fit, wants a follow-up demo',    icon: 'flame' },
-  { v: 'nurture',     label: 'Nurture',     desc: 'Real but not now, keep warm',           icon: 'seed' },
-  { v: 'no_deal',     label: 'No deal',     desc: 'Not interested or already solved',      icon: 'x' },
-  { v: 'unqualified', label: 'Unqualified', desc: 'Wrong fit, wrong size, no budget',      icon: 'ban' }
+  { v: 'deal',               label: 'Deal',               short: 'Deal',    desc: 'Commercial intent, moving to contract',  icon: 'handshake', grp: 'created', tone: 'deal' },
+  { v: 'future_opportunity', label: 'Future opportunity', short: 'Future',  desc: 'Right fit, wrong quarter. Budget later',  icon: 'flame',     grp: 'open',    tone: 'hot' },
+  { v: 'nurture',            label: 'Nurture',            short: 'Nurture', desc: 'Real but no trigger yet, keep warm',      icon: 'seed',      grp: 'open',    tone: 'nurture' },
+  { v: 'no_show',            label: 'No show',            short: 'No show', desc: 'Booked but never turned up',              icon: 'ban',       grp: 'missed',  tone: 'mute' },
+  { v: 'no_deal',            label: 'No deal',            short: 'No deal', desc: 'Heard us out, not interested',            icon: 'x',         grp: 'dropped', tone: 'dead' },
+  { v: 'unqualified',        label: 'Unqualified',        short: 'Unqual',  desc: 'Wrong fit, wrong size, no budget',        icon: 'flag',      grp: 'dropped', tone: 'dead' }
 ];
 window.OUT_MAP = Object.fromEntries(window.OUTCOMES.map(o => [o.v, o]));
+/* outcomes that carry a number worth reporting */
+window.OUT_VALUED = ['deal', 'future_opportunity'];
+window.OUT_GRP = {
+  created: { label: 'Created',  desc: 'Deals called on the floor' },
+  open:    { label: 'Still in play', desc: 'Worth a follow-up' },
+  missed:  { label: 'Missed',   desc: 'Booked and never met' },
+  dropped: { label: 'Dropped',  desc: 'Closed out at the stand' }
+};
+window.SOURCES = {
+  sheet:  { label: 'Booked meeting', desc: 'From the meeting sheet' },
+  walkin: { label: 'Walk-in',        desc: 'Stopped at the stand' },
+  manual: { label: 'Added on site',  desc: 'Typed in by the team' }
+};
 
 window.STATUSES = [
   { v: 'scheduled',   label: 'Scheduled' },

@@ -208,6 +208,7 @@ document.addEventListener('click', async e => {
   const acts = {
     meeting: () => Views.openMeeting(id),
     outcome: () => Views.openOutcome(id),
+    outList: () => Views.openOutcomeList(id),
     lead: () => Views.openLead(id),
     editLead: () => Views.openEditLead(id),
     editMeeting: () => Views.openEditMeeting(id),
@@ -385,7 +386,7 @@ function openReview(res, mtgId) {
 
     <div class="sec-h" style="margin-top:4px"><h2>How interested are they?</h2></div>
     <div class="outs" id="rOut">
-      ${OUTCOMES.map(o => `<button class="outbtn" data-v="${o.v}" aria-pressed="false">
+      ${OUTCOMES.filter(o => o.v !== 'no_show').map(o => `<button class="outbtn" data-v="${o.v}" aria-pressed="false">
         <span class="oi">${I[o.icon] || I.bolt}</span>
         <span class="ot">${o.label}</span><span class="od">${o.desc}</span></button>`).join('')}
     </div>

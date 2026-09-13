@@ -124,7 +124,7 @@ function viewToday() {
   const c = { deal: 0, hot: 0, nurture: 0, bad: 0 };
   sorted.forEach(m => {
     if (m.outcome === 'deal') c.deal++;
-    else if (m.outcome === 'hot') c.hot++;
+    else if (m.outcome === 'future_opportunity') c.hot++;
     else if (m.outcome === 'nurture') c.nurture++;
     else if (m.outcome) c.bad++;
   });
@@ -289,7 +289,7 @@ function viewLeads() {
     all: S.leads.length,
     mine: S.leads.filter(l => l.captured_by === meId()).length,
     deal: S.leads.filter(l => l.interest === 'deal').length,
-    hot: S.leads.filter(l => l.interest === 'hot').length
+    hot: S.leads.filter(l => l.interest === 'future_opportunity').length
   };
 
   let html = `
@@ -305,8 +305,8 @@ function viewLeads() {
     <button data-lf="all" aria-selected="${V.leadFilter === 'all'}">All · ${counts.all}</button>
     <button data-lf="mine" aria-selected="${V.leadFilter === 'mine'}">Mine · ${counts.mine}</button>
     <button data-lf="deal" aria-selected="${V.leadFilter === 'deal'}">Deal · ${counts.deal}</button>
-    <button data-lf="hot" aria-selected="${V.leadFilter === 'hot'}">Hot · ${counts.hot}</button>
-    <button data-lf="nurture" aria-selected="${V.leadFilter === 'nurture'}">Nurture</button>
+    <button data-lf="future_opportunity" aria-selected="${V.leadFilter === 'future_opportunity'}">Future · ${counts.hot}</button>
+    <button data-lf="nurture" aria-selected="${V.leadFilter === 'nurture'}">Nurture · ${S.leads.filter(l => l.interest === 'nurture').length}</button>
   </div>`;
 
   if (!list.length) {
@@ -437,24 +437,25 @@ function viewBoard() {
   }) : S.leads;
 
   const logged = mtgs.filter(m => m.outcome);
-  const deals = mtgs.filter(m => m.outcome === 'deal');
-  const hot = mtgs.filter(m => m.outcome === 'hot');
-  const pipe = mtgs.reduce((s, m) => s + (Number(m.deal_value_usd) || 0), 0);
+  const byGrp = g => mtgs.filter(m => m.outcome && OUT_MAP[m.outcome]?.grp === g);
+  const deals = byGrp('created');
+  const open = byGrp('open');
+  const dropped = byGrp('dropped');
+  const missed = byGrp('missed');
+  const dealVal = deals.reduce((s, m) => s + (Number(m.deal_value_usd) || 0), 0);
+  const openVal = open.reduce((s, m) => s + (Number(m.deal_value_usd) || 0), 0);
 
   /* leaderboard */
   const rows = S.members.map(mem => {
-    /* attendance board: only the people actually in the room */
-    const mine = mtgs.filter(m => m.owner_id === mem.user_id);
-    const lg = mine.filter(m => m.outcome);
+    const isRep = mem.role === 'rep';
+    const mine = mtgs.filter(m => (isRep ? m.rep_id : m.owner_id) === mem.user_id);
+    const cnt = g => mine.filter(m => m.outcome && OUT_MAP[m.outcome]?.grp === g).length;
     return {
-      mem, total: mine.length,
-      logged: lg.length,
-      deal: mine.filter(m => m.outcome === 'deal').length,
-      hot: mine.filter(m => m.outcome === 'hot').length,
-      nurture: mine.filter(m => m.outcome === 'nurture').length,
-      bad: mine.filter(m => m.outcome && !['deal', 'hot', 'nurture'].includes(m.outcome)).length,
+      mem, isRep, total: mine.length,
+      logged: mine.filter(m => m.outcome).length,
+      deal: cnt('created'), open: cnt('open'), missed: cnt('missed'), bad: cnt('dropped'),
       cards: leads.filter(l => l.captured_by === mem.user_id).length,
-      value: mine.reduce((s, m) => s + (Number(m.deal_value_usd) || 0), 0)
+      value: mine.filter(m => m.outcome === 'deal').reduce((s, m) => s + (Number(m.deal_value_usd) || 0), 0)
     };
   }).filter(r => r.total || r.cards)
     .sort((a, b) => (b.deal - a.deal) || (b.logged - a.logged) || (b.cards - a.cards) || (b.total - a.total));
@@ -465,15 +466,19 @@ function viewBoard() {
   return `
   <div class="segs" style="margin-bottom:14px">
     <button data-bd="event" aria-selected="${V.boardDay === 'event'}">Whole event</button>
-    <button data-bd="day" aria-selected="${V.boardDay === 'day'}">${V.day === 'all' ? 'Single day' : UI.fmtDate(V.day)}</button>
+    <button data-bd="day" aria-selected="${V.day === 'all' ? 'false' : String(V.boardDay === 'day')}">${V.day === 'all' ? 'Single day' : UI.fmtDate(V.day)}</button>
   </div>
 
   <div class="kpis">
-    <div class="kpi brand"><div class="k">Meetings</div><div class="v tnum">${mtgs.length}</div><div class="d">${logged.length} logged</div></div>
-    <div class="kpi deal"><div class="k">Deals called</div><div class="v tnum">${deals.length}</div><div class="d">${hot.length} hot behind them</div></div>
-    <div class="kpi"><div class="k">Cards captured</div><div class="v tnum">${leads.length}</div><div class="d">${leads.filter(l => l.interest === 'deal' || l.interest === 'hot').length} worth chasing</div></div>
-    <div class="kpi hot"><div class="k">Pipeline called</div><div class="v tnum">${pipe ? UI.money(pipe).replace('$', '') : '0'}</div><div class="d">${pipe ? 'USD, self reported' : 'add value on outcomes'}</div></div>
+    <div class="kpi brand"><div class="k">Meetings</div><div class="v tnum">${mtgs.length}</div><div class="d">${logged.length} called, ${mtgs.length - logged.length} open</div></div>
+    <div class="kpi deal"><div class="k">Deals created</div><div class="v tnum">${deals.length}</div><div class="d">${dealVal ? UI.money(dealVal) + ' called' : 'add value on the call'}</div></div>
+    <div class="kpi hot"><div class="k">Still in play</div><div class="v tnum">${open.length}</div><div class="d">${openVal ? UI.money(openVal) + ' behind them' : 'future and nurture'}</div></div>
+    <div class="kpi bad"><div class="k">Closed out</div><div class="v tnum">${dropped.length + missed.length}</div><div class="d">${dropped.length} dropped, ${missed.length} no show</div></div>
   </div>
+
+  ${ledgerBlock(mtgs, logged)}
+  ${dealsBlock(deals)}
+  ${sourceBlock(mtgs, leads)}
 
   <div class="sec">
     <div class="sec-h"><h2>Team</h2><span class="count">${rows.length}</span></div>
@@ -484,13 +489,13 @@ function viewBoard() {
           <span class="rk">${i + 1}</span>
           ${UI.avatar(r.mem, 'sm')}
           <span class="who">
-            <span class="n">${UI.esc(r.mem.short_name)}${r.mem.user_id === meId() ? ' · you' : ''}</span>
-            <span class="s">${r.logged}/${r.total} logged · ${r.cards} card${r.cards === 1 ? '' : 's'}${r.value ? ' · ' + UI.money(r.value) : ''}</span>
+            <span class="n">${UI.esc(r.mem.full_name)}${r.mem.user_id === meId() ? ' · you' : ''}</span>
+            <span class="s">${r.isRep ? r.total + ' booked' : r.logged + '/' + r.total + ' called'} · ${r.cards} card${r.cards === 1 ? '' : 's'}${r.value ? ' · ' + UI.money(r.value) : ''}</span>
             <span class="prog">
               <i class="d" style="width:${r.deal / T * 100}%"></i>
-              <i class="h" style="width:${r.hot / T * 100}%"></i>
-              <i class="n" style="width:${r.nurture / T * 100}%"></i>
+              <i class="h" style="width:${r.open / T * 100}%"></i>
               <i class="x" style="width:${r.bad / T * 100}%"></i>
+              <i class="m" style="width:${r.missed / T * 100}%"></i>
             </span>
           </span>
           <span class="nums"><span class="big" style="color:${r.deal ? 'var(--deal)' : 'var(--tx-2)'}">${r.deal}</span><span class="sm">DEALS</span></span>
@@ -511,27 +516,139 @@ function viewBoard() {
   </div>`;
 }
 
-function tally(arr, fn) {
-  const m = new Map();
-  arr.forEach(x => { const k = fn(x); m.set(k, (m.get(k) || 0) + 1); });
-  return [...m.entries()].sort((a, b) => b[1] - a[1]);
-}
-function barBlock(title, pairs) {
-  if (!pairs.length) return '';
-  const max = Math.max(...pairs.map(p => p[1]));
+/* ---------- outcome ledger ----------
+   Every call the team made, in pipeline order, each row a door into the
+   records behind the number. This is the answer to "what happened and why". */
+function ledgerBlock(mtgs, logged) {
+  const T = Math.max(1, logged.length);
+  const rowsFor = OUTCOMES.map(o => {
+    const list = mtgs.filter(m => m.outcome === o.v);
+    return {
+      o, n: list.length,
+      value: OUT_VALUED.includes(o.v) ? list.reduce((s, m) => s + (Number(m.deal_value_usd) || 0), 0) : 0
+    };
+  });
+
   return `<div class="sec">
-    <div class="sec-h"><h2>${UI.esc(title)}</h2></div>
-    <div class="card bars">
-      ${pairs.slice(0, 8).map(([k, v]) => `<div class="bar">
-        <span class="bl" title="${UI.esc(k)}">${UI.esc(k)}</span>
-        <span class="bt"><i style="width:${Math.max(4, v / max * 100)}%"></i></span>
-        <span class="bv tnum">${v}</span>
-      </div>`).join('')}
+    <div class="sec-h">
+      <h2>Outcome ledger</h2>
+      <span class="count">${logged.length}/${mtgs.length} called</span>
+    </div>
+    ${logged.length ? `<div class="stackbar" aria-hidden="true">
+      ${rowsFor.filter(r => r.n).map(r => `<i class="t-${r.o.tone}" style="width:${r.n / T * 100}%" title="${r.o.label}"></i>`).join('')}
+    </div>` : ''}
+    <div class="card ledger">
+      ${rowsFor.map(r => `<button class="ldg${r.n ? '' : ' zero'}" ${r.n ? `data-act="outList" data-id="${r.o.v}"` : 'disabled'}>
+        <span class="lg-i t-${r.o.tone}">${I[r.o.icon] || I.bolt}</span>
+        <span class="lg-t">
+          <span class="lg-1">${r.o.label}</span>
+          <span class="lg-2">${r.n ? (OUT_GRP[r.o.grp].label + (r.value ? ' · ' + UI.money(r.value) : '')) : r.o.desc}</span>
+          <span class="lg-tr"><i class="t-${r.o.tone}" style="width:${r.n / T * 100}%"></i></span>
+        </span>
+        <span class="lg-n tnum">${r.n}</span>
+        ${r.n ? I.chev : ''}
+      </button>`).join('')}
+    </div>
+    ${logged.length < mtgs.length ? `<p class="hint" style="margin:8px 2px 0">${mtgs.length - logged.length} meeting${mtgs.length - logged.length === 1 ? '' : 's'} still without a call. Every one of them is invisible to the pipeline until someone logs it.</p>` : ''}
+  </div>`;
+}
+
+/* ---------- deals created ----------
+   Named, not counted. Each deal shows how it reached us. */
+function dealsBlock(deals) {
+  if (!deals.length) {
+    return `<div class="sec">
+      <div class="sec-h"><h2>Deals created</h2></div>
+      <div class="card"><div class="hint" style="padding:16px;text-align:center">No deal called yet. The moment someone logs one it lands here with the company, the owner and where it came from.</div></div>
+    </div>`;
+  }
+  const sorted = [...deals].sort((a, b) => (Number(b.deal_value_usd) || 0) - (Number(a.deal_value_usd) || 0));
+  return `<div class="sec">
+    <div class="sec-h"><h2>Deals created</h2><span class="count">${deals.length}</span></div>
+    <div class="card dlist">
+      ${sorted.map(m => `<button class="dealrow" data-act="meeting" data-id="${m.id}">
+        <span class="dl-t">
+          <span class="dl-1">${UI.esc(m.company_name || 'Unnamed')}</span>
+          <span class="dl-2">${UI.esc(m.owner_name || 'Unassigned')} · ${UI.esc(SOURCES[m.source]?.label || 'Booked meeting')}${m.geo_region ? ' · ' + UI.esc(m.geo_region) : ''}</span>
+          ${m.next_step ? `<span class="dl-3">${I.target}${UI.esc(m.next_step)}</span>` : ''}
+        </span>
+        <span class="dl-v tnum">${m.deal_value_usd ? UI.money(m.deal_value_usd) : '—'}</span>
+        ${I.chev}
+      </button>`).join('')}
     </div>
   </div>`;
 }
+
+/* ---------- how it came in ----------
+   Booked, walked in, or typed on the floor. Deals per route, so the team can
+   see which motion is actually producing. */
+function sourceBlock(mtgs, leads) {
+  const keys = ['sheet', 'walkin', 'manual'].filter(k => mtgs.some(m => (m.source || 'sheet') === k));
+  const scanned = leads.filter(l => l.card_front_path || l.ocr_text).length;
+  return `<div class="sec">
+    <div class="sec-h"><h2>How it came in</h2></div>
+    <div class="card srcs">
+      ${keys.map(k => {
+        const list = mtgs.filter(m => (m.source || 'sheet') === k);
+        const lg = list.filter(m => m.outcome).length;
+        const dl = list.filter(m => m.outcome === 'deal').length;
+        const T = Math.max(1, list.length);
+        return `<div class="srow">
+          <span class="sr-t">
+            <span class="sr-1">${SOURCES[k].label}</span>
+            <span class="sr-2">${lg}/${list.length} called${dl ? ' · ' + dl + ' deal' + (dl === 1 ? '' : 's') : ''}</span>
+          </span>
+          <span class="sr-b"><i style="width:${lg / T * 100}%"></i></span>
+          <span class="sr-n tnum">${list.length}</span>
+        </div>`;
+      }).join('')}
+      <div class="srow">
+        <span class="sr-t">
+          <span class="sr-1">Cards captured</span>
+          <span class="sr-2">${scanned} scanned, ${Math.max(0, leads.length - scanned)} typed</span>
+        </span>
+        <span class="sr-b"><i style="width:${leads.length ? scanned / Math.max(1, leads.length) * 100 : 0}%"></i></span>
+        <span class="sr-n tnum">${leads.length}</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ---------- the records behind one number ---------- */
+function openOutcomeList(val) {
+  const o = OUT_MAP[val];
+  if (!o) return;
+  const inDay = V.boardDay === 'day' && V.day !== 'all';
+  const list = S.meetings
+    .filter(m => m.outcome === val && (!inDay || m.meeting_date === V.day))
+    .sort((a, b) => (Number(b.deal_value_usd) || 0) - (Number(a.deal_value_usd) || 0)
+      || String(a.company_name).localeCompare(String(b.company_name)));
+  const value = OUT_VALUED.includes(val) ? list.reduce((s, m) => s + (Number(m.deal_value_usd) || 0), 0) : 0;
+
+  UI.openSheet({
+    title: o.label,
+    sub: `${list.length} ${list.length === 1 ? 'record' : 'records'}${value ? ' · ' + UI.money(value) : ''}${inDay ? ' · ' + UI.fmtDate(V.day) : ''}`,
+    body: `
+      <p class="hint" style="margin:0 0 12px">${o.desc}.</p>
+      <div class="card dlist">
+        ${list.map(m => `<button class="dealrow" data-act="meeting" data-id="${m.id}">
+          <span class="dl-t">
+            <span class="dl-1">${UI.esc(m.company_name || 'Unnamed')}</span>
+            <span class="dl-2">${UI.esc(m.owner_name || 'Unassigned')} · ${UI.esc(SOURCES[m.source]?.label || 'Booked meeting')}${m.meeting_date ? ' · ' + UI.fmtDate(m.meeting_date) : ''}</span>
+            ${m.outcome_notes ? `<span class="dl-3">${I.note}${UI.esc(m.outcome_notes.slice(0, 120))}</span>` : ''}
+            ${m.next_step ? `<span class="dl-3">${I.target}${UI.esc(m.next_step)}</span>` : ''}
+          </span>
+          ${OUT_VALUED.includes(val) ? `<span class="dl-v tnum">${m.deal_value_usd ? UI.money(m.deal_value_usd) : '—'}</span>` : ''}
+          ${I.chev}
+        </button>`).join('')}
+      </div>`,
+    foot: `<button class="btn ghost" data-x>Close</button>`,
+    onMount(b, f) { f.querySelector('[data-x]').onclick = () => UI.closeSheet(); }
+  });
+}
+
 function feedRow(a) {
-  const map = { outcome_deal: 'deal', outcome_hot: 'hot', outcome_nurture: 'nurture', outcome_no_deal: 'no_deal', outcome_unqualified: 'unqualified', lead_scanned: 'scan' };
+  const map = Object.fromEntries(OUTCOMES.map(o => ['outcome_' + o.v, o.v]).concat([['lead_scanned', 'scan']]));
   const cls = map[a.kind] || '';
   const ic = a.kind === 'lead_scanned' ? 'card'
     : a.kind === 'meeting_added' ? 'plus'
@@ -570,7 +687,7 @@ function viewMe() {
 
   <div class="kpis">
     <div class="kpi brand"><div class="k">${me.role === 'rep' ? 'Booked by me' : 'My meetings'}</div><div class="v tnum">${mine.length}</div><div class="d">${logged.length} logged</div></div>
-    <div class="kpi deal"><div class="k">${me.role === 'rep' ? 'Deals booked' : 'My deals'}</div><div class="v tnum">${mine.filter(m => m.outcome === 'deal').length}</div><div class="d">${mine.filter(m => m.outcome === 'hot').length} hot</div></div>
+    <div class="kpi deal"><div class="k">${me.role === 'rep' ? 'Deals booked' : 'My deals'}</div><div class="v tnum">${mine.filter(m => m.outcome === 'deal').length}</div><div class="d">${mine.filter(m => m.outcome === 'future_opportunity').length} future</div></div>
     <div class="kpi"><div class="k">My cards</div><div class="v tnum">${myLeads.length}</div><div class="d">captured by me</div></div>
     <div class="kpi hot"><div class="k">To log</div><div class="v tnum">${mine.length - logged.length}</div><div class="d">outcomes open</div></div>
   </div>
@@ -699,7 +816,7 @@ function openOutcome(id) {
       </button>`).join('')}
     </div>
     <div id="outExtra" style="margin-top:16px">
-      <div class="field" id="valWrap" ${pick === 'deal' || pick === 'hot' ? '' : 'hidden'}>
+      <div class="field" id="valWrap" ${OUT_VALUED.includes(pick) ? '' : 'hidden'}>
         <label for="o_val">Deal value if it lands (USD)</label>
         <input class="input mono" id="o_val" type="number" inputmode="numeric" min="0" step="1000"
                placeholder="50000" value="${m.deal_value_usd != null ? UI.esc(m.deal_value_usd) : ''}">
@@ -730,7 +847,7 @@ function openOutcome(id) {
         btn.onclick = () => {
           pick = btn.dataset.v;
           b.querySelectorAll('.outbtn').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.v === pick)));
-          b.querySelector('#valWrap').hidden = !(pick === 'deal' || pick === 'hot');
+          b.querySelector('#valWrap').hidden = !OUT_VALUED.includes(pick);
           save.disabled = false;
           UI.buzz();
         };
@@ -741,12 +858,12 @@ function openOutcome(id) {
         const val = b.querySelector('#o_val').value;
         const values = {
           outcome: pick,
-          status: ['no_deal', 'unqualified', 'deal', 'hot', 'nurture'].includes(pick) ? 'met' : m.status,
-          deal_value_usd: (pick === 'deal' || pick === 'hot') && val !== '' ? Number(val) : null,
+          status: pick === 'no_show' ? 'no_show' : 'met',
+          deal_value_usd: OUT_VALUED.includes(pick) && val !== '' ? Number(val) : null,
           next_step: b.querySelector('#o_next').value.trim() || null,
           next_step_due: b.querySelector('#o_due').value || null,
           outcome_notes: b.querySelector('#o_notes').value.trim() || null,
-          met_at: m.met_at || new Date().toISOString(),
+          met_at: pick === 'no_show' ? null : (m.met_at || new Date().toISOString()),
           updated_at: new Date().toISOString()
         };
         UI.closeSheet();
@@ -1150,7 +1267,7 @@ function render() {
 
 window.Views = {
   V, render, renderDayRail, eventDays, isMine, meId, liveInfo,
-  openMeeting, openOutcome, openLead, openEditLead, openAddMeeting, openEditMeeting,
+  openMeeting, openOutcome, openOutcomeList, openLead, openEditLead, openAddMeeting, openEditMeeting,
   openAddEvent, openSwitchEvent, doSwitchEvent, openTeam, openLinkMeeting,
   matchMeetings, leadCard, hydrateThumbs, scoped, dayFilter
 };

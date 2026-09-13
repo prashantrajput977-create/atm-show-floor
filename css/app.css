@@ -19,6 +19,10 @@
   --line-2: #D2CCBE;
   --field: #FFFFFF;
   --track: #E4E0D6;
+  /* controls get a real edge and a hairline of depth so nothing reads as a decal */
+  --ctl-edge: #C9C2B2;
+  --sh-ctl: 0 1px 2px rgba(22, 19, 14, .05), 0 1px 0 rgba(255, 255, 255, .7) inset;
+  --sh-ctl-h: 0 2px 5px rgba(22, 19, 14, .08), 0 1px 0 rgba(255, 255, 255, .7) inset;
 
   /* warm near-black, so text sits on the paper rather than floating above it */
   --tx: #16130E;
@@ -141,12 +145,15 @@ a { color: var(--brand-2); text-decoration: none; }
 .spacer { flex: 1 1 auto; min-width: 4px; }
 
 .iconbtn {
-  width: 38px; height: 38px; flex: none; border-radius: var(--r-sm);
+  width: 38px; height: 38px; flex: none; border-radius: 10px;
   display: grid; place-items: center; color: var(--tx-2);
-  border: 1px solid var(--line); background: var(--surf);
-  transition: background .16s, color .16s, border-color .16s;
+  border: 1px solid var(--ctl-edge); background: var(--surf);
+  box-shadow: var(--sh-ctl);
+  transition: background .15s, color .15s, border-color .15s, box-shadow .15s, transform .08s;
 }
-.iconbtn:hover { background: var(--surf-2); color: var(--tx); }
+.iconbtn:hover { background: var(--surf-2); color: var(--tx); border-color: var(--tx-3); box-shadow: var(--sh-ctl-h) }
+.iconbtn:active { transform: translateY(1px); box-shadow: none; background: var(--surf-3) }
+.iconbtn:focus-visible { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-dim) }
 .iconbtn svg { width: 18px; height: 18px; }
 .iconbtn.on { color: var(--brand); border-color: rgba(43, 79, 238, .45); background: var(--brand-dim); }
 /* event switcher: a quiet chevron, so the wordmark can own the home action */
@@ -299,24 +306,47 @@ main {
 
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 7px;
-  height: 44px; padding: 0 16px; border-radius: var(--r-sm);
-  font-size: 14px; font-weight: 650; letter-spacing: -.005em;
-  background: var(--surf-2); border: 1px solid var(--line-2); color: var(--tx);
-  transition: background .16s, border-color .16s, transform .1s, opacity .16s;
+  height: 46px; padding: 0 18px; border-radius: 10px;
+  font-size: 14px; font-weight: 700; letter-spacing: -.012em;
+  background: var(--surf); border: 1px solid var(--ctl-edge); color: var(--tx);
+  box-shadow: var(--sh-ctl);
+  transition: background .15s, border-color .15s, box-shadow .15s, transform .08s, opacity .15s;
 }
-.btn:active { transform: scale(.985) }
-.btn:disabled { opacity: .45; pointer-events: none }
+.btn:hover { background: var(--surf-2); border-color: var(--tx-3); box-shadow: var(--sh-ctl-h) }
+.btn:active { transform: translateY(1px); box-shadow: none; background: var(--surf-3) }
+.btn:focus-visible { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-dim) }
+.btn:disabled { opacity: .42; pointer-events: none; box-shadow: none }
 .btn svg { width: 17px; height: 17px; flex: none }
+
 .btn.primary {
-  background: linear-gradient(160deg, var(--brand) 0%, #2A4BDB 100%);
-  border-color: transparent; color: #fff;
-  box-shadow: 0 3px 14px rgba(43, 79, 238, .3);
+  background: var(--brand); border-color: var(--brand-2); color: #fff;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .22) inset, 0 2px 8px rgba(43, 79, 238, .28);
 }
-.btn.ghost { background: transparent; border-color: var(--line); color: var(--tx-2) }
-.btn.ghost:hover { color: var(--tx); border-color: var(--line-2) }
-.btn.danger { color: var(--dead); border-color: rgba(216, 50, 60, .32); background: var(--dead-dim) }
+.btn.primary:hover {
+  background: var(--brand-2); border-color: #1633AF;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .22) inset, 0 4px 14px rgba(43, 79, 238, .34);
+}
+.btn.primary:active { background: #1633AF; box-shadow: 0 1px 3px rgba(43, 79, 238, .3) inset }
+
+.btn.ghost { background: var(--surf); border-color: var(--line-2); color: var(--tx-2); box-shadow: none }
+.btn.ghost:hover { color: var(--tx); border-color: var(--ctl-edge); background: var(--surf-2); box-shadow: var(--sh-ctl) }
+
+.btn.danger {
+  color: var(--dead); border-color: rgba(216, 50, 60, .42); background: var(--dead-dim);
+  box-shadow: none;
+}
+.btn.danger:hover { background: rgba(216, 50, 60, .16); border-color: var(--dead); color: var(--dead) }
+
+.btn.dark {
+  background: var(--tx); border-color: var(--tx); color: var(--ink);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .12) inset, 0 2px 8px rgba(22, 19, 14, .18);
+}
+.btn.dark:hover { background: #241F17; border-color: #241F17; color: var(--ink) }
+
 .btn.block { width: 100%; }
-.btn.sm { height: 34px; padding: 0 11px; font-size: 12.5px; border-radius: 9px }
+.btn.sm {
+  height: 36px; padding: 0 13px; font-size: 12.5px; font-weight: 700; border-radius: 9px;
+}
 .btn.sm svg { width: 14px; height: 14px }
 
 .field { margin-bottom: 12px; }
@@ -357,10 +387,11 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
   background: var(--surf-3); color: var(--tx-2); border: 1px solid var(--line);
   white-space: nowrap; flex: none;
 }
-.tag.deal { background: var(--deal-dim); color: var(--deal); border-color: rgba(0, 153, 106, .3) }
-.tag.hot { background: var(--hot-dim); color: var(--hot); border-color: rgba(181, 115, 11, .3) }
-.tag.nurture { background: var(--nurture-dim); color: var(--nurture); border-color: rgba(109, 69, 217, .3) }
-.tag.no_deal, .tag.unqualified { background: var(--dead-dim); color: var(--dead); border-color: rgba(216, 50, 60, .3) }
+.tag.t-deal { background: var(--deal-dim); color: var(--deal); border-color: rgba(0, 153, 106, .3) }
+.tag.t-hot { background: var(--hot-dim); color: var(--hot); border-color: rgba(181, 115, 11, .3) }
+.tag.t-nurture { background: var(--nurture-dim); color: var(--nurture); border-color: rgba(109, 69, 217, .3) }
+.tag.t-dead { background: var(--dead-dim); color: var(--dead); border-color: rgba(216, 50, 60, .3) }
+.tag.t-mute { background: var(--surf-3); color: var(--tx-2); border-color: var(--line-2) }
 .tag.brand { background: var(--brand-dim); color: var(--brand); border-color: rgba(43, 79, 238, .32) }
 .tag.mine { background: var(--tint); color: var(--tx); border-color: var(--line-2) }
 /* attendee chip: small avatar sitting flush inside the pill */
@@ -374,15 +405,17 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
 .segs::-webkit-scrollbar { display: none }
 .segs button {
   flex: none; white-space: nowrap; position: relative;
-  height: 32px; padding: 0 0 8px;
-  font-size: 13px; font-weight: 650; color: var(--tx-3); letter-spacing: -.01em;
-  transition: color .16s;
+  height: 34px; padding: 0 0 9px;
+  font-size: 13.5px; font-weight: 700; color: var(--tx-2); letter-spacing: -.018em;
+  transition: color .15s;
 }
+.segs button:hover { color: var(--tx) }
 .segs button::after {
-  content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px;
-  background: var(--tx); border-radius: 2px; transform: scaleX(0); transform-origin: left;
-  transition: transform .2s cubic-bezier(.2, .8, .2, 1);
+  content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 2.5px;
+  background: var(--tx); border-radius: 3px; transform: scaleX(0); transform-origin: left;
+  transition: transform .22s cubic-bezier(.2, .8, .2, 1);
 }
+.segs button:focus-visible { outline: none; color: var(--brand-2) }
 .segs button[aria-selected="true"] { color: var(--tx); font-weight: 750 }
 .segs button[aria-selected="true"]::after { transform: scaleX(1) }
 
@@ -481,14 +514,16 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
 .wkalt { display: flex; gap: 8px; margin-top: 8px }
 .wkalt button {
   flex: 1 1 0; display: flex; align-items: center; justify-content: center; gap: 7px;
-  height: 40px; border-radius: var(--r-sm);
-  font-size: 12.5px; font-weight: 700; color: var(--tx-2);
-  background: var(--surf); border: 1px solid var(--line);
-  transition: background .15s, color .15s;
+  height: 44px; border-radius: 10px;
+  font-size: 13px; font-weight: 700; letter-spacing: -.012em; color: var(--tx-2);
+  background: var(--surf); border: 1px solid var(--ctl-edge);
+  box-shadow: var(--sh-ctl);
+  transition: background .15s, color .15s, border-color .15s, box-shadow .15s, transform .08s;
 }
 .wkalt button svg { width: 15px; height: 15px }
-.wkalt button:hover { background: var(--surf-2); color: var(--tx) }
-.wkalt button:active { background: var(--surf-3) }
+.wkalt button:hover { background: var(--surf-2); color: var(--tx); border-color: var(--tx-3); box-shadow: var(--sh-ctl-h) }
+.wkalt button:active { transform: translateY(1px); box-shadow: none; background: var(--surf-3) }
+.wkalt button:focus-visible { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-dim) }
 
 /* walk-ins: card and its outcome button read as one unit */
 .wkstat {
@@ -631,6 +666,7 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
 .prog i { display: block; height: 100%; transition: width .5s cubic-bezier(.4, 0, .2, 1) }
 .prog i.d { background: var(--deal) } .prog i.h { background: var(--hot) }
 .prog i.n { background: var(--nurture) } .prog i.x { background: var(--dead) }
+.prog i.m { background: var(--line-2) }
 
 /* ============================================================
    KPI / BOARD
@@ -667,6 +703,104 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
 .bar .bt { flex: 1 1 auto; height: 20px; border-radius: 5px; background: var(--track); overflow: hidden; position: relative }
 .bar .bt i { display: block; height: 100%; border-radius: 5px; background: linear-gradient(90deg, var(--brand), var(--brand-2)); transition: width .5s cubic-bezier(.4,0,.2,1) }
 .bar .bv { flex: none; width: 30px; text-align: right; font-family: var(--ff-mono); font-size: 12px; font-weight: 700; color: var(--tx-2) }
+
+/* ============================================================
+   DASHBOARD: OUTCOME LEDGER, DEALS, SOURCES
+   ============================================================ */
+
+/* one stacked line for the whole event's calls, read before the detail */
+.stackbar {
+  display: flex; height: 8px; border-radius: var(--r-full); overflow: hidden;
+  background: var(--track); margin-bottom: 10px;
+}
+.stackbar i { display: block; height: 100%; transition: width .5s cubic-bezier(.4,0,.2,1) }
+.stackbar i.t-deal { background: var(--deal) }
+.stackbar i.t-hot { background: var(--hot) }
+.stackbar i.t-nurture { background: var(--nurture) }
+.stackbar i.t-dead { background: var(--dead) }
+.stackbar i.t-mute { background: var(--line-2) }
+
+.ledger { padding: 3px 0 }
+.ldg {
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+  padding: 12px 13px; border-bottom: 1px solid var(--line);
+  transition: background .14s;
+}
+.ldg:last-child { border-bottom: 0 }
+.ldg:not(.zero):hover { background: var(--tint) }
+.ldg:not(.zero):active { background: var(--surf-3) }
+.ldg.zero { opacity: .52 }
+.ldg > svg:last-child { width: 16px; height: 16px; flex: none; color: var(--tx-3) }
+
+.lg-i {
+  flex: none; width: 34px; height: 34px; border-radius: 10px;
+  display: grid; place-items: center; background: var(--surf-3); color: var(--tx-2);
+}
+.lg-i svg { width: 17px; height: 17px }
+.lg-i.t-deal { background: var(--deal-dim); color: var(--deal) }
+.lg-i.t-hot { background: var(--hot-dim); color: var(--hot) }
+.lg-i.t-nurture { background: var(--nurture-dim); color: var(--nurture) }
+.lg-i.t-dead { background: var(--dead-dim); color: var(--dead) }
+
+.lg-t { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 3px }
+.lg-1 { font-size: 14px; font-weight: 700; letter-spacing: -.02em; color: var(--tx) }
+.lg-2 { font-size: 11.5px; font-weight: 600; color: var(--tx-3) }
+.lg-tr { display: block; height: 4px; border-radius: var(--r-full); background: var(--track); overflow: hidden; margin-top: 3px }
+.lg-tr i { display: block; height: 100%; border-radius: var(--r-full); transition: width .5s cubic-bezier(.4,0,.2,1) }
+.lg-tr i.t-deal { background: var(--deal) }
+.lg-tr i.t-hot { background: var(--hot) }
+.lg-tr i.t-nurture { background: var(--nurture) }
+.lg-tr i.t-dead { background: var(--dead) }
+.lg-tr i.t-mute { background: var(--line-2) }
+.lg-n {
+  flex: none; min-width: 26px; text-align: right;
+  font-family: var(--ff-mono); font-size: 19px; font-weight: 700;
+  letter-spacing: -.04em; color: var(--tx);
+}
+.ldg.zero .lg-n { color: var(--tx-3) }
+
+/* named deals, and the same row shape inside the drill-down sheet */
+.dlist { padding: 3px 0 }
+.dealrow {
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+  padding: 12px 13px; border-bottom: 1px solid var(--line); transition: background .14s;
+}
+.dealrow:last-child { border-bottom: 0 }
+.dealrow:hover { background: var(--tint) }
+.dealrow:active { background: var(--surf-3) }
+.dealrow > svg:last-child { width: 16px; height: 16px; flex: none; color: var(--tx-3) }
+.dl-t { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 3px }
+.dl-1 {
+  font-size: 14.5px; font-weight: 700; letter-spacing: -.022em; color: var(--tx);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.dl-2 { font-size: 11.5px; font-weight: 600; color: var(--tx-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.dl-3 {
+  display: flex; align-items: flex-start; gap: 5px; font-size: 11.5px; color: var(--tx-2);
+  line-height: 1.45; margin-top: 1px;
+}
+.dl-3 svg { width: 13px; height: 13px; flex: none; margin-top: 2px; color: var(--tx-3) }
+.dl-v {
+  flex: none; font-family: var(--ff-mono); font-size: 14px; font-weight: 700;
+  letter-spacing: -.03em; color: var(--deal);
+}
+
+.srcs { padding: 13px }
+.srow { display: flex; align-items: center; gap: 12px; margin-bottom: 12px }
+.srow:last-child { margin-bottom: 0 }
+.sr-t { flex: 0 0 132px; min-width: 0; display: flex; flex-direction: column; gap: 2px }
+.sr-1 { font-size: 12.5px; font-weight: 700; letter-spacing: -.015em; color: var(--tx) }
+.sr-2 { font-size: 11px; font-weight: 600; color: var(--tx-3) }
+.sr-b { flex: 1 1 auto; height: 20px; border-radius: 5px; background: var(--track); overflow: hidden }
+.sr-b i {
+  display: block; height: 100%; border-radius: 5px;
+  background: linear-gradient(90deg, var(--brand), var(--brand-2));
+  transition: width .5s cubic-bezier(.4,0,.2,1);
+}
+.sr-n {
+  flex: none; width: 32px; text-align: right; font-family: var(--ff-mono);
+  font-size: 13px; font-weight: 700; color: var(--tx-2);
+}
 
 /* activity feed */
 .feed { padding: 3px 0 }
@@ -773,23 +907,29 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
 .outs .outbtn:last-child:nth-child(odd) .oi { grid-row: 1 / span 2 }
 .outbtn {
   padding: 13px 12px; border-radius: var(--r); text-align: left;
-  background: var(--surf); border: 1.5px solid var(--line);
-  transition: border-color .16s, background .16s, transform .1s;
+  background: var(--surf); border: 1.5px solid var(--line-2);
+  box-shadow: var(--sh-ctl);
+  transition: border-color .15s, background .15s, box-shadow .15s, transform .08s;
 }
-.outbtn:active { transform: scale(.97) }
+.outbtn:hover { border-color: var(--ctl-edge); box-shadow: var(--sh-ctl-h) }
+.outbtn:focus-visible { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-dim) }
+.outbtn:active { transform: translateY(1px); box-shadow: none }
 .outbtn .oi { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; margin-bottom: 8px }
 .outbtn .oi svg { width: 15px; height: 15px }
 .outbtn .ot { display: block; font-size: 14px; font-weight: 700; letter-spacing: -.015em }
 .outbtn .od { display: block; font-size: 11px; color: var(--tx-3); margin-top: 3px; line-height: 1.35 }
 .outbtn[data-v="deal"] .oi { background: var(--deal-dim); color: var(--deal) }
-.outbtn[data-v="hot"] .oi { background: var(--hot-dim); color: var(--hot) }
+.outbtn[data-v="future_opportunity"] .oi { background: var(--hot-dim); color: var(--hot) }
+.outbtn[data-v="no_show"] .oi { background: var(--surf-3); color: var(--tx-2) }
 .outbtn[data-v="nurture"] .oi { background: var(--nurture-dim); color: var(--nurture) }
 .outbtn[data-v="no_deal"] .oi, .outbtn[data-v="unqualified"] .oi { background: var(--dead-dim); color: var(--dead) }
 .outbtn[aria-pressed="true"][data-v="deal"] { border-color: var(--deal); background: var(--deal-dim) }
-.outbtn[aria-pressed="true"][data-v="hot"] { border-color: var(--hot); background: var(--hot-dim) }
+.outbtn[aria-pressed="true"][data-v="future_opportunity"] { border-color: var(--hot); background: var(--hot-dim) }
+.outbtn[aria-pressed="true"][data-v="no_show"] { border-color: var(--line-2); background: var(--surf-3) }
 .outbtn[aria-pressed="true"][data-v="nurture"] { border-color: var(--nurture); background: var(--nurture-dim) }
 .outbtn[aria-pressed="true"][data-v="no_deal"] { border-color: var(--dead); background: var(--dead-dim) }
 .outbtn[aria-pressed="true"][data-v="unqualified"] { border-color: var(--dead); background: var(--dead-dim) }
+.outbtn[aria-pressed="true"] { box-shadow: 0 0 0 1px currentColor inset }
 
 /* detail rows */
 .drow {
@@ -855,11 +995,13 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
 .matchbox .mh { font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--tx-3); margin-bottom: 9px }
 .matchopt {
   display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
-  padding: 9px 10px; border-radius: 9px; margin-bottom: 6px;
-  background: var(--surf); border: 1.5px solid var(--line);
+  padding: 10px 11px; border-radius: 10px; margin-bottom: 6px;
+  background: var(--surf); border: 1.5px solid var(--line-2); box-shadow: var(--sh-ctl);
+  transition: border-color .15s, background .15s, box-shadow .15s;
 }
+.matchopt:hover { border-color: var(--ctl-edge); box-shadow: var(--sh-ctl-h) }
 .matchopt:last-child { margin-bottom: 0 }
-.matchopt[aria-pressed="true"] { border-color: var(--brand); background: var(--brand-dim) }
+.matchopt[aria-pressed="true"] { border-color: var(--brand); background: var(--brand-dim); box-shadow: 0 0 0 1px var(--brand) inset }
 .matchopt .mi { width: 26px; height: 26px; border-radius: 7px; flex: none; display: grid; place-items: center; background: var(--surf-3); color: var(--tx-3) }
 .matchopt .mi svg { width: 14px; height: 14px }
 .matchopt .mb { flex: 1 1 auto; min-width: 0 }
@@ -992,10 +1134,14 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
 .toast.ok .ti { color: var(--deal) } .toast.bad .ti { color: var(--dead) } .toast.warn .ti { color: var(--hot) }
 .toast .tt { flex: 1 1 auto; min-width: 0; font-size: 13px; font-weight: 600; line-height: 1.35 }
 .toast .tb {
-  flex: none; height: 30px; padding: 0 11px; border-radius: 8px;
-  font-size: 12.5px; font-weight: 700; color: var(--brand-2);
-  background: var(--brand-dim); border: 1px solid rgba(43, 79, 238, .3);
+  flex: none; height: 32px; padding: 0 12px; border-radius: 8px;
+  font-size: 12.5px; font-weight: 700; color: #fff;
+  background: var(--brand); border: 1px solid var(--brand-2);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .2) inset;
+  transition: background .14s;
 }
+.toast .tb:hover { background: var(--brand-2) }
+.toast .tb:active { background: #1633AF }
 
 /* reduced motion */
 @media (prefers-reduced-motion: reduce) {
