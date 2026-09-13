@@ -647,6 +647,45 @@ function openOutcomeList(val) {
   });
 }
 
+function tally(arr, fn) {
+  const m = new Map();
+  arr.forEach(x => { const k = fn(x); m.set(k, (m.get(k) || 0) + 1); });
+  return [...m.entries()].sort((a, b) => b[1] - a[1]);
+}
+
+function barBlock(title, pairs) {
+  if (!pairs.length) return '';
+  const max = Math.max(...pairs.map(p => p[1]));
+  return `<div class="sec">
+    <div class="sec-h"><h2>${UI.esc(title)}</h2></div>
+    <div class="card bars">
+      ${pairs.slice(0, 8).map(([k, v]) => `<div class="bar">
+        <span class="bl" title="${UI.esc(k)}">${UI.esc(k)}</span>
+        <span class="bt"><i style="width:${Math.max(4, v / max * 100)}%"></i></span>
+        <span class="bv tnum">${v}</span>
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+async function hydrateThumbs() {
+  const holders = UI.$$('[data-thumb]').filter(e => e.dataset.thumb);
+  const bigs = UI.$$('[data-bigthumb]').filter(e => e.dataset.bigthumb);
+  for (const el of holders) {
+    const url = await Store.thumb(el.dataset.thumb);
+    if (!url) continue;
+    const img = document.createElement('img');
+    img.className = 'thumb'; img.src = url; img.alt = ''; img.loading = 'lazy';
+    el.replaceWith(img);
+  }
+  for (const el of bigs) {
+    const url = await Store.thumb(el.dataset.bigthumb);
+    if (!url) continue;
+    el.innerHTML = `<img src="${UI.esc(url)}" alt="Business card">`;
+    el.removeAttribute('data-bigthumb'); el.style.minHeight = '';
+  }
+}
+
 function feedRow(a) {
   const map = Object.fromEntries(OUTCOMES.map(o => ['outcome_' + o.v, o.v]).concat([['lead_scanned', 'scan']]));
   const cls = map[a.kind] || '';
