@@ -1,0 +1,1046 @@
+/* ============================================================
+   Show Floor — screens
+   ============================================================ */
+
+const V = {
+  tab: 'today',
+  day: null,          // 'YYYY-MM-DD' | 'all'
+  scope: 'mine',      // mine | team
+  leadFilter: 'all',
+  q: '',
+  boardDay: 'event'   // event | day
+};
+window.V = V;
+
+/* ---------------- selectors ---------------- */
+const meId = () => S.me?.user_id || null;
+const isMine = m => m.owner_id === meId() || m.rep_id === meId();
+
+function eventDays() {
+  const e = UI.activeEvent();
+  const out = [];
+  if (e) {
+    const [y1, m1, d1] = e.starts_on.split('-').map(Number);
+    const [y2, m2, d2] = e.ends_on.split('-').map(Number);
+    let c = Date.UTC(y1, m1 - 1, d1);
+    const end = Date.UTC(y2, m2 - 1, d2);
+    let guard = 0;
+    while (c <= end && guard++ < 40) {
+      out.push(new Date(c).toISOString().slice(0, 10));
+      c += 86400000;
+    }
+  }
+  S.meetings.forEach(m => { if (m.meeting_date && !out.includes(m.meeting_date)) out.push(m.meeting_date); });
+  return out.sort();
+}
+
+function scoped(list) { return V.scope === 'mine' ? list.filter(isMine) : list; }
+function dayFilter(list, day) { return day && day !== 'all' ? list.filter(m => m.meeting_date === day) : list; }
+
+function liveInfo(m) {
+  const now = UI.nowInTz();
+  if (m.meeting_date !== now.date) return 0;
+  const st = UI.toMin(m.meeting_time);
+  if (st == null) return 0;
+  const en = st + (m.duration_min || 30);
+  if (now.min >= st && now.min < en) return 1;
+  return 0;
+}
+function isDone(m) { return !!m.outcome || ['no_show', 'cancelled'].includes(m.status); }
+
+function leadsFor(meetingId) { return S.leads.filter(l => l.meeting_id === meetingId); }
+
+/* ---------------- day rail ---------------- */
+function renderDayRail() {
+  const rail = UI.$('#dayrail');
+  const days = eventDays();
+  const today = UI.nowInTz().date;
+  if (!V.day) V.day = days.includes(today) ? today : (days[0] || 'all');
+
+  const counts = {};
+  scoped(S.meetings).forEach(m => { counts[m.meeting_date] = (counts[m.meeting_date] || 0) + 1; });
+  const total = scoped(S.meetings).length;
+
+  rail.innerHTML =
+    days.map(d => {
+      const p = UI.dParts(d);
+      const n = counts[d] || 0;
+      return `<button class="daychip${d === today ? ' today' : ''}" data-day="${d}" aria-selected="${d === V.day}">
+        <span class="dc-1">${p.dow}</span>
+        <span class="dc-2 mono">${String(p.day).padStart(2, '0')}</span>
+        <span class="dc-3">${n} mtg${n === 1 ? '' : 's'}</span>
+      </button>`;
+    }).join('') +
+    `<button class="daychip all" data-day="all" aria-selected="${V.day === 'all'}">
+       <span class="dc-1">All</span><span class="dc-2 mono">${total}</span><span class="dc-3">days</span>
+     </button>`;
+
+  const sel = rail.querySelector('[aria-selected="true"]');
+  if (sel) sel.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+  rail.hidden = !(V.tab === 'today' || V.tab === 'board');
+}
+
+/* ============================================================
+   TODAY
+   ============================================================ */
+function viewToday() {
+  const all = dayFilter(scoped(S.meetings), V.day);
+  const mineN = dayFilter(S.meetings.filter(isMine), V.day).length;
+  const teamN = dayFilter(S.meetings, V.day).length;
+
+  const sorted = [...all].sort((a, b) => {
+    const ta = UI.toMin(a.meeting_time), tb = UI.toMin(b.meeting_time);
+    if (ta == null && tb == null) return (a.company_name || '').localeCompare(b.company_name || '');
+    if (ta == null) return 1;
+    if (tb == null) return -1;
+    return ta - tb || (a.seq || 0) - (b.seq || 0);
+  });
+
+  const live = sorted.find(m => liveInfo(m));
+  const now = UI.nowInTz();
+  const next = sorted.find(m => m.meeting_date === now.date && UI.toMin(m.meeting_time) > now.min && !isDone(m));
+
+  const logged = sorted.filter(m => m.outcome).length;
+  const c = { deal: 0, hot: 0, nurture: 0, bad: 0 };
+  sorted.forEach(m => {
+    if (m.outcome === 'deal') c.deal++;
+    else if (m.outcome === 'hot') c.hot++;
+    else if (m.outcome === 'nurture') c.nurture++;
+    else if (m.outcome) c.bad++;
+  });
+  const T = Math.max(1, sorted.length);
+
+  let html = `
+  <div class="segs" style="margin-bottom:14px" role="tablist">
+    <button role="tab" data-scope="mine" aria-selected="${V.scope === 'mine'}">My meetings · ${mineN}</button>
+    <button role="tab" data-scope="team" aria-selected="${V.scope === 'team'}">Whole team · ${teamN}</button>
+  </div>`;
+
+  if (live) html += nowCard(live, 'In progress now');
+  else if (next) html += nowCard(next, 'Up next');
+
+  if (sorted.length) {
+    html += `<div class="card" style="padding:13px;margin-bottom:18px">
+      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:9px">
+        <span class="mono" style="font-size:19px;font-weight:700;letter-spacing:-.04em">${logged}<span style="color:var(--tx-3)">/${sorted.length}</span></span>
+        <span style="font-size:12px;color:var(--tx-2);font-weight:600">outcomes logged${V.day === 'all' ? '' : ' · ' + UI.fmtDate(V.day)}</span>
+        <span class="spacer" style="flex:1"></span>
+        ${c.deal ? `<span class="tag deal">${c.deal} deal${c.deal === 1 ? '' : 's'}</span>` : ''}
+      </div>
+      <div class="prog">
+        <i class="d" style="width:${c.deal / T * 100}%"></i>
+        <i class="h" style="width:${c.hot / T * 100}%"></i>
+        <i class="n" style="width:${c.nurture / T * 100}%"></i>
+        <i class="x" style="width:${c.bad / T * 100}%"></i>
+      </div>
+    </div>`;
+  }
+
+  if (!sorted.length) {
+    html += UI.emptyState('calendar',
+      V.scope === 'mine' ? 'Nothing on your name' : 'No meetings this day',
+      V.scope === 'mine'
+        ? 'Switch to the whole team, pick another day, or add a walk-in you just picked up.'
+        : 'Pick another day from the rail above, or add a walk-in.',
+      { act: 'addMeeting', label: 'Add a walk-in', icon: 'plus' });
+  } else {
+    let lastSlot = null;
+    html += '<div class="agenda">';
+    sorted.forEach(m => {
+      const sl = UI.slotOf(m.meeting_time);
+      if (sl !== lastSlot) {
+        lastSlot = sl;
+        const isNowSlot = live && UI.slotOf(live.meeting_time) === sl;
+        html += `<div class="slot-h${isNowSlot ? ' now' : ''}">
+          <span class="t">${UI.esc(sl)}</span><span class="ln"></span>
+          ${isNowSlot ? '<span class="live">LIVE</span>' : ''}
+        </div>`;
+      }
+      html += meetingCard(m);
+    });
+    html += '</div>';
+    html += `<button class="btn ghost block" data-act="addMeeting" style="margin-top:6px">${I.plus}Add a walk-in meeting</button>`;
+  }
+  return html;
+}
+
+function nowCard(m, label) {
+  const t = UI.fmtTimeStr(m.meeting_time);
+  const own = UI.memberById(m.owner_id), rep = UI.memberById(m.rep_id);
+  return `<div class="nowcard">
+    <div class="lbl"><span class="bl"></span>${UI.esc(label)}</div>
+    <h3>${UI.esc(m.company_name)}</h3>
+    <div class="sub">${UI.esc([t, m.prospect_name, m.geo_region].filter(Boolean).join(' · '))}</div>
+    <div style="display:flex;gap:5px;margin-top:9px;flex-wrap:wrap;align-items:center">
+      ${own ? UI.avatar(own, 'xs') : ''}${rep && rep.user_id !== own?.user_id ? UI.avatar(rep, 'xs') : ''}
+      ${m.category ? `<span class="tag">${UI.esc(m.category)}</span>` : ''}
+      ${m.outcome ? UI.tagFor(m.outcome) : ''}
+    </div>
+    <div class="acts">
+      <button class="btn primary" data-act="outcome" data-id="${m.id}">${I.checkCircle}${m.outcome ? 'Update call' : 'Log outcome'}</button>
+      <button class="btn" data-act="scanFor" data-id="${m.id}">${I.card}Scan card</button>
+    </div>
+  </div>`;
+}
+
+function meetingCard(m) {
+  const f = UI.fmtTime(m.meeting_time);
+  const own = UI.memberById(m.owner_id) || UI.memberByName(m.owner_name);
+  const rep = UI.memberById(m.rep_id) || UI.memberByName(m.rep_name);
+  const lc = leadsFor(m.id).length;
+  const mine = isMine(m);
+  return `<button class="mtg" data-act="meeting" data-id="${m.id}"
+      data-outcome="${m.outcome || ''}" data-live="${liveInfo(m)}" data-done="${isDone(m) ? 1 : 0}">
+    <span class="tcol">
+      <span class="hm">${f.hm}</span>
+      <span class="ap">${f.ap || (m.meeting_time ? '' : 'TBD')}</span>
+      ${m.duration_min && m.duration_min !== 30 ? `<span class="nt">${m.duration_min}m</span>` : ''}
+    </span>
+    <span class="body">
+      <span class="co"><span class="nm">${UI.esc(m.company_name)}</span>
+        ${m.priority ? `<span style="color:var(--hot);display:flex">${I.flag}</span>` : ''}
+      </span>
+      ${m.prospect_name || m.designation
+        ? `<span class="pr">${UI.esc([m.prospect_name, m.designation].filter(Boolean).join(' · '))}</span>`
+        : (m.geo_region ? `<span class="pr">${UI.esc(m.geo_region)}</span>` : '')}
+      <span class="meta">
+        ${m.outcome ? UI.tagFor(m.outcome) : (m.status !== 'scheduled' ? `<span class="tag"><span class="statedot ${m.status}"></span>${UI.esc(m.status.replace('_', ' '))}</span>` : '')}
+        ${m.category ? `<span class="tag">${UI.esc(shortCat(m.category))}</span>` : ''}
+        ${m.prospect_name && m.geo_region ? `<span class="tag">${UI.esc(m.geo_region)}</span>` : ''}
+        ${lc ? `<span class="tag brand">${I.card}${lc}</span>` : ''}
+        ${V.scope === 'team' && mine ? '<span class="tag mine">Mine</span>' : ''}
+        ${V.scope === 'team' && own ? UI.avatar(own, 'xs') : ''}
+        ${V.scope === 'team' && rep && rep.user_id !== own?.user_id ? UI.avatar(rep, 'xs') : ''}
+        ${V.day === 'all' ? `<span class="tag">${UI.esc(UI.fmtDate(m.meeting_date))}</span>` : ''}
+      </span>
+    </span>
+    <span class="chev">${I.chev}</span>
+  </button>`;
+}
+function shortCat(c) {
+  return String(c).replace('Existing Business', 'Existing').replace('New Business', 'New').replace('Existing + New', 'Exist + New').replace('Existing Deal', 'Open deal');
+}
+
+/* ============================================================
+   LEADS
+   ============================================================ */
+function viewLeads() {
+  const q = V.q.trim().toLowerCase();
+  let list = [...S.leads];
+  if (V.leadFilter === 'mine') list = list.filter(l => l.captured_by === meId());
+  else if (V.leadFilter !== 'all') list = list.filter(l => l.interest === V.leadFilter);
+  if (q) {
+    list = list.filter(l => [l.full_name, l.company, l.email, l.designation, l.phone, l.notes, l.geo_region]
+      .some(v => v && String(v).toLowerCase().includes(q)));
+  }
+
+  const counts = {
+    all: S.leads.length,
+    mine: S.leads.filter(l => l.captured_by === meId()).length,
+    deal: S.leads.filter(l => l.interest === 'deal').length,
+    hot: S.leads.filter(l => l.interest === 'hot').length
+  };
+
+  let html = `
+  <div class="searchwrap">${I.search}
+    <input class="input" id="leadQ" type="search" placeholder="Search name, company, email" value="${UI.esc(V.q)}"
+      autocomplete="off" autocapitalize="none" spellcheck="false">
+    ${V.q ? `<button class="clr" data-act="clearQ" aria-label="Clear">${I.x}</button>` : ''}
+  </div>
+  <div class="segs" style="margin-bottom:14px">
+    <button data-lf="all" aria-selected="${V.leadFilter === 'all'}">All · ${counts.all}</button>
+    <button data-lf="mine" aria-selected="${V.leadFilter === 'mine'}">Mine · ${counts.mine}</button>
+    <button data-lf="deal" aria-selected="${V.leadFilter === 'deal'}">Deal · ${counts.deal}</button>
+    <button data-lf="hot" aria-selected="${V.leadFilter === 'hot'}">Hot · ${counts.hot}</button>
+    <button data-lf="nurture" aria-selected="${V.leadFilter === 'nurture'}">Nurture</button>
+  </div>`;
+
+  if (!list.length) {
+    html += S.leads.length
+      ? UI.emptyState('search', 'Nothing matches', 'Try a shorter search, or clear the filter.')
+      : UI.emptyState('card', 'No cards yet', 'Tap Scan and point the camera at a business card. The details get read for you.',
+        { act: 'goScan', label: 'Scan a card', icon: 'scan' });
+    return html;
+  }
+
+  html += list.map(leadCard).join('');
+  if (list.length > 6) html += `<div class="hint" style="text-align:center;margin-top:10px">${list.length} contacts</div>`;
+  return html;
+}
+
+function leadCard(l) {
+  const who = UI.memberById(l.captured_by);
+  const mtg = l.meeting_id ? S.meetings.find(m => m.id === l.meeting_id) : null;
+  const img = l._local_front || (l.card_front_path ? (S.thumbs[l.card_front_path] || '') : '');
+  return `<button class="lead" data-act="lead" data-id="${l.id}" data-i="${l.interest || ''}">
+    ${img
+      ? `<img class="thumb" src="${UI.esc(img)}" alt="" loading="lazy">`
+      : `<span class="thumb ph" data-thumb="${UI.esc(l.card_front_path || '')}">${I.card}</span>`}
+    <span class="body">
+      <span class="nm">${UI.esc(l.full_name || 'Unnamed contact')}</span>
+      <span class="co2">${UI.esc([l.designation, l.company].filter(Boolean).join(' · ') || l.email || '')}</span>
+      <span class="meta">
+        ${l.interest ? UI.tagFor(l.interest) : '<span class="tag">Unrated</span>'}
+        ${mtg ? `<span class="tag brand">${I.link}Meeting</span>` : ''}
+        ${l.geo_region ? `<span class="tag">${UI.esc(l.geo_region)}</span>` : ''}
+        ${l._dirty || l.synced === false ? `<span class="tag hot">${I.refresh}Queued</span>` : ''}
+        ${who && l.captured_by !== meId() ? UI.avatar(who, 'xs') : ''}
+        <span class="tag" style="background:none;border:0;color:var(--tx-3);padding:0">${UI.esc(UI.ago(l.created_at))}</span>
+      </span>
+    </span>
+    <span class="chev" style="align-self:center;color:var(--tx-3)">${I.chev}</span>
+  </button>`;
+}
+
+/* ============================================================
+   SCAN
+   ============================================================ */
+function viewScan() {
+  const recent = S.leads.filter(l => l.captured_by === meId()).slice(0, 4);
+  const ocr = S.ocrConfigured;
+  return `
+  <div class="scanhero">
+    <div class="ill">${I.card}</div>
+    <h2>Scan a business card</h2>
+    <p>Point the camera at the card. Name, title, company, email and phone come back filled in, ready for you to check.</p>
+    <div class="acts">
+      <button class="btn primary block" data-act="camera">${I.camera}Open camera</button>
+      <button class="btn ghost block" data-act="upload">${I.image}Pick from photos</button>
+      <button class="btn ghost block" data-act="manual">${I.edit}Type it in instead</button>
+    </div>
+  </div>
+  <div class="ocrbar" data-s="${ocr === false ? 'warn' : 'ok'}">
+    ${ocr === false ? I.alert : I.sparkle}
+    <span>${ocr === false
+      ? 'AI reading is not switched on yet. Cards are still read on your device.'
+      : 'AI card reading is live. Works offline too, cards queue and sync.'}</span>
+  </div>
+  ${recent.length ? `<div class="sec">
+    <div class="sec-h"><h2>Your recent captures</h2><span class="count">${recent.length}</span></div>
+    ${recent.map(leadCard).join('')}
+  </div>` : ''}`;
+}
+
+/* ============================================================
+   BOARD
+   ============================================================ */
+function viewBoard() {
+  const inDay = V.boardDay === 'day' && V.day !== 'all';
+  const mtgs = inDay ? S.meetings.filter(m => m.meeting_date === V.day) : S.meetings;
+  const leads = inDay ? S.leads.filter(l => {
+    const m = l.meeting_id && S.meetings.find(x => x.id === l.meeting_id);
+    return m ? m.meeting_date === V.day : String(l.created_at || '').slice(0, 10) === V.day;
+  }) : S.leads;
+
+  const logged = mtgs.filter(m => m.outcome);
+  const deals = mtgs.filter(m => m.outcome === 'deal');
+  const hot = mtgs.filter(m => m.outcome === 'hot');
+  const pipe = mtgs.reduce((s, m) => s + (Number(m.deal_value_usd) || 0), 0);
+
+  /* leaderboard */
+  const rows = S.members.map(mem => {
+    const mine = mtgs.filter(m => m.owner_id === mem.user_id || m.rep_id === mem.user_id);
+    const lg = mine.filter(m => m.outcome);
+    return {
+      mem, total: mine.length,
+      logged: lg.length,
+      deal: mine.filter(m => m.outcome === 'deal').length,
+      hot: mine.filter(m => m.outcome === 'hot').length,
+      nurture: mine.filter(m => m.outcome === 'nurture').length,
+      bad: mine.filter(m => m.outcome && !['deal', 'hot', 'nurture'].includes(m.outcome)).length,
+      cards: leads.filter(l => l.captured_by === mem.user_id).length,
+      value: mine.reduce((s, m) => s + (Number(m.deal_value_usd) || 0), 0)
+    };
+  }).filter(r => r.total || r.cards)
+    .sort((a, b) => (b.deal - a.deal) || (b.logged - a.logged) || (b.cards - a.cards) || (b.total - a.total));
+
+  const regions = tally(mtgs, m => m.geo_region || 'Unspecified');
+  const cats = tally(mtgs, m => m.category ? shortCat(m.category) : 'Unspecified');
+
+  return `
+  <div class="segs" style="margin-bottom:14px">
+    <button data-bd="event" aria-selected="${V.boardDay === 'event'}">Whole event</button>
+    <button data-bd="day" aria-selected="${V.boardDay === 'day'}">${V.day === 'all' ? 'Single day' : UI.fmtDate(V.day)}</button>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi brand"><div class="k">Meetings</div><div class="v tnum">${mtgs.length}</div><div class="d">${logged.length} logged</div></div>
+    <div class="kpi deal"><div class="k">Deals called</div><div class="v tnum">${deals.length}</div><div class="d">${hot.length} hot behind them</div></div>
+    <div class="kpi"><div class="k">Cards captured</div><div class="v tnum">${leads.length}</div><div class="d">${leads.filter(l => l.interest === 'deal' || l.interest === 'hot').length} worth chasing</div></div>
+    <div class="kpi hot"><div class="k">Pipeline called</div><div class="v tnum">${pipe ? UI.money(pipe).replace('$', '') : '0'}</div><div class="d">${pipe ? 'USD, self reported' : 'add value on outcomes'}</div></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h"><h2>Team</h2><span class="count">${rows.length}</span></div>
+    <div class="card lb">
+      ${rows.length ? rows.map((r, i) => {
+        const T = Math.max(1, r.total);
+        return `<div class="lbrow${r.mem.user_id === meId() ? ' me' : ''}">
+          <span class="rk">${i + 1}</span>
+          ${UI.avatar(r.mem, 'sm')}
+          <span class="who">
+            <span class="n">${UI.esc(r.mem.short_name)}${r.mem.user_id === meId() ? ' · you' : ''}</span>
+            <span class="s">${r.logged}/${r.total} logged · ${r.cards} card${r.cards === 1 ? '' : 's'}${r.value ? ' · ' + UI.money(r.value) : ''}</span>
+            <span class="prog">
+              <i class="d" style="width:${r.deal / T * 100}%"></i>
+              <i class="h" style="width:${r.hot / T * 100}%"></i>
+              <i class="n" style="width:${r.nurture / T * 100}%"></i>
+              <i class="x" style="width:${r.bad / T * 100}%"></i>
+            </span>
+          </span>
+          <span class="nums"><span class="big" style="color:${r.deal ? 'var(--deal)' : 'var(--tx-2)'}">${r.deal}</span><span class="sm">DEALS</span></span>
+        </div>`;
+      }).join('') : `<div class="hint" style="padding:16px;text-align:center">No activity yet.</div>`}
+    </div>
+  </div>
+
+  ${barBlock('Where the demand sits', regions)}
+  ${barBlock('Business mix', cats)}
+
+  <div class="sec">
+    <div class="sec-h"><h2>Live activity</h2></div>
+    <div class="card feed">
+      ${S.activity.length ? S.activity.slice(0, 26).map(feedRow).join('')
+        : `<div class="hint" style="padding:16px;text-align:center">Nothing logged yet. It shows up here the moment anyone calls an outcome.</div>`}
+    </div>
+  </div>`;
+}
+
+function tally(arr, fn) {
+  const m = new Map();
+  arr.forEach(x => { const k = fn(x); m.set(k, (m.get(k) || 0) + 1); });
+  return [...m.entries()].sort((a, b) => b[1] - a[1]);
+}
+function barBlock(title, pairs) {
+  if (!pairs.length) return '';
+  const max = Math.max(...pairs.map(p => p[1]));
+  return `<div class="sec">
+    <div class="sec-h"><h2>${UI.esc(title)}</h2></div>
+    <div class="card bars">
+      ${pairs.slice(0, 8).map(([k, v]) => `<div class="bar">
+        <span class="bl" title="${UI.esc(k)}">${UI.esc(k)}</span>
+        <span class="bt"><i style="width:${Math.max(4, v / max * 100)}%"></i></span>
+        <span class="bv tnum">${v}</span>
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+function feedRow(a) {
+  const map = { outcome_deal: 'deal', outcome_hot: 'hot', outcome_nurture: 'nurture', outcome_no_deal: 'no_deal', outcome_unqualified: 'unqualified', lead_scanned: 'scan' };
+  const cls = map[a.kind] || '';
+  const ic = a.kind === 'lead_scanned' ? 'card'
+    : a.kind === 'meeting_added' ? 'plus'
+    : a.kind === 'status' ? 'clock'
+    : (OUT_MAP[a.kind?.replace('outcome_', '')]?.icon) || 'bolt';
+  return `<div class="fr">
+    <span class="ic ${cls}">${I[ic] || I.bolt}</span>
+    <span class="tx">
+      <span class="l1"><b>${UI.esc(a.actor_name || 'Someone')}</b> ${UI.esc(a.summary || a.kind)}</span>
+      <span class="l2">${UI.esc(UI.ago(a.created_at))}</span>
+    </span>
+  </div>`;
+}
+
+/* ============================================================
+   ME
+   ============================================================ */
+function viewMe() {
+  const me = S.me || {};
+  const mine = S.meetings.filter(isMine);
+  const logged = mine.filter(m => m.outcome);
+  const myLeads = S.leads.filter(l => l.captured_by === meId());
+  const ev = UI.activeEvent();
+  const byDay = eventDays().map(d => ({ d, n: mine.filter(m => m.meeting_date === d).length, l: mine.filter(m => m.meeting_date === d && m.outcome).length }));
+  const canInstall = !!window.__installPrompt;
+
+  return `
+  <div class="card" style="padding:16px;display:flex;gap:13px;align-items:center;margin-bottom:16px">
+    ${UI.avatar(me, 'lg')}
+    <div style="min-width:0">
+      <div style="font-size:18px;font-weight:750;letter-spacing:-.025em">${UI.esc(me.full_name || 'You')}</div>
+      <div style="font-size:12.5px;color:var(--tx-2);margin-top:1px">${UI.esc(me.title || (me.role === 'leader' ? 'Leadership' : 'Inside sales'))}</div>
+      <div style="font-size:11.5px;color:var(--tx-3);margin-top:3px;overflow:hidden;text-overflow:ellipsis">${UI.esc(me.email || '')}</div>
+    </div>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi brand"><div class="k">My meetings</div><div class="v tnum">${mine.length}</div><div class="d">${logged.length} logged</div></div>
+    <div class="kpi deal"><div class="k">My deals</div><div class="v tnum">${mine.filter(m => m.outcome === 'deal').length}</div><div class="d">${mine.filter(m => m.outcome === 'hot').length} hot</div></div>
+    <div class="kpi"><div class="k">My cards</div><div class="v tnum">${myLeads.length}</div><div class="d">captured by me</div></div>
+    <div class="kpi hot"><div class="k">To log</div><div class="v tnum">${mine.length - logged.length}</div><div class="d">outcomes open</div></div>
+  </div>
+
+  ${byDay.length ? `<div class="sec">
+    <div class="sec-h"><h2>My day by day</h2></div>
+    <div class="card bars">
+      ${byDay.map(x => `<div class="bar">
+        <span class="bl">${UI.esc(UI.fmtDate(x.d))}</span>
+        <span class="bt"><i style="width:${x.n ? Math.max(4, x.l / Math.max(1, x.n) * 100) : 0}%"></i></span>
+        <span class="bv tnum">${x.l}/${x.n}</span>
+      </div>`).join('')}
+    </div>
+  </div>` : ''}
+
+  <div class="sec">
+    <div class="sec-h"><h2>Event</h2></div>
+    <div class="card" style="padding:4px 13px">
+      <div class="drow"><span class="di">${I.calendar}</span><span class="dv"><span class="k">Now showing</span><span class="v">${UI.esc(ev?.name || '—')}</span></span>
+        <span class="da"><button class="iconbtn" data-act="switchEvent" aria-label="Switch event">${I.refresh}</button></span></div>
+      <div class="drow"><span class="di">${I.pin}</span><span class="dv"><span class="k">Venue</span><span class="v">${UI.esc([ev?.venue, ev?.city].filter(Boolean).join(', ') || '—')}${ev?.stand ? ' · Stand ' + UI.esc(ev.stand) : ''}</span></span></div>
+      <div class="drow"><span class="di">${I.users}</span><span class="dv"><span class="k">Team on the floor</span><span class="v">${S.members.length} people</span></span>
+        <span class="da"><button class="iconbtn" data-act="team" aria-label="See team">${I.chev}</button></span></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h"><h2>Actions</h2></div>
+    <div style="display:flex;flex-direction:column;gap:9px">
+      <button class="btn block" data-act="addMeeting">${I.plus}Add a walk-in meeting</button>
+      <button class="btn block" data-act="addEvent">${I.calendar}Create a new event</button>
+      <button class="btn block" data-act="export">${I.download}Export to CSV</button>
+      ${canInstall ? `<button class="btn primary block" data-act="install">${I.upload}Install on this phone</button>` : ''}
+      <button class="btn ghost block" data-act="refresh">${I.refresh}Refresh from server</button>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h"><h2>Sync</h2></div>
+    <div class="card" style="padding:4px 13px">
+      <div class="drow"><span class="di">${S.net === 'offline' ? I.wifiOff : I.bolt}</span>
+        <span class="dv"><span class="k">Connection</span><span class="v">${S.net === 'offline' ? 'Offline, work is saved on device' : S.pending ? S.pending + ' change' + (S.pending === 1 ? '' : 's') + ' syncing' : 'Live and in sync'}</span></span></div>
+      <div class="drow"><span class="di">${I.sparkle}</span>
+        <span class="dv"><span class="k">AI card reading</span><span class="v ${S.ocrConfigured === false ? 'mut' : ''}">${S.ocrConfigured === false ? 'Not switched on, using on-device' : 'Active'}</span></span></div>
+    </div>
+  </div>
+
+  <button class="btn danger block" data-act="signout" style="margin-bottom:10px">${I.logout}Sign out</button>
+  <div class="hint" style="text-align:center">Show Floor · built for the Vervotech field team</div>`;
+}
+
+/* ============================================================
+   SHEETS
+   ============================================================ */
+function openMeeting(id) {
+  const m = S.meetings.find(x => x.id === id);
+  if (!m) return;
+  const own = UI.memberById(m.owner_id) || UI.memberByName(m.owner_name);
+  const rep = UI.memberById(m.rep_id) || UI.memberByName(m.rep_name);
+  const ls = leadsFor(m.id);
+
+  const row = (icon, k, v, actions = '') => v ? `<div class="drow">
+    <span class="di">${I[icon] || I.info}</span>
+    <span class="dv"><span class="k">${UI.esc(k)}</span><span class="v">${v}</span></span>
+    ${actions ? `<span class="da">${actions}</span>` : ''}
+  </div>` : '';
+
+  const body = `
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
+      ${m.outcome ? UI.tagFor(m.outcome) : `<span class="tag">${UI.esc(m.status.replace('_', ' '))}</span>`}
+      ${m.category ? `<span class="tag">${UI.esc(m.category)}</span>` : ''}
+      ${m.geo_region ? `<span class="tag">${UI.esc(m.geo_region)}</span>` : ''}
+      ${m.source !== 'sheet' ? `<span class="tag brand">${UI.esc(m.source === 'walkin' ? 'Walk-in' : m.source)}</span>` : ''}
+      ${liveInfo(m) ? '<span class="tag hot">Live now</span>' : ''}
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:16px">
+      <button class="btn primary block" data-act="outcome" data-id="${m.id}">${I.checkCircle}${m.outcome ? 'Update the call' : 'Log the outcome'}</button>
+      <div style="display:flex;gap:9px">
+        <button class="btn" style="flex:1" data-act="scanFor" data-id="${m.id}">${I.card}Scan card</button>
+        <button class="btn" style="flex:1" data-act="editMeeting" data-id="${m.id}">${I.edit}Edit</button>
+      </div>
+    </div>
+
+    <div class="card" style="padding:4px 13px;margin-bottom:16px">
+      ${row('clock', 'When', `${UI.esc(UI.fmtDate(m.meeting_date))} · <span class="mono">${UI.esc(UI.fmtTimeStr(m.meeting_time))}</span>${m.duration_min ? ' · ' + m.duration_min + ' min' : ''}`)}
+      ${row('user', 'Prospect', UI.esc([m.prospect_name, m.designation].filter(Boolean).join(' · ')))}
+      ${row('mail', 'Email', m.email ? UI.esc(m.email) : '',
+        m.email ? `<a class="iconbtn" href="mailto:${UI.esc(m.email)}" aria-label="Email">${I.mail}</a>
+                   <button class="iconbtn" data-act="copy" data-v="${UI.esc(m.email)}" aria-label="Copy">${I.copy}</button>` : '')}
+      ${row('phone', 'Mobile', m.mobile ? UI.esc(m.mobile) : '',
+        m.mobile ? `<a class="iconbtn" href="tel:${UI.esc(String(m.mobile).replace(/\s/g, ''))}" aria-label="Call">${I.phone}</a>
+                    <button class="iconbtn" data-act="copy" data-v="${UI.esc(m.mobile)}" aria-label="Copy">${I.copy}</button>` : '')}
+      ${row('globe', 'Domain', m.domain ? UI.esc(m.domain) : '')}
+      ${row('pin', 'Where', m.location ? UI.esc(m.location) : '')}
+      ${row('users', 'On our side', `${own ? UI.esc(own.short_name) : UI.esc(m.owner_name || '—')}${rep && rep.user_id !== own?.user_id ? ' with ' + UI.esc(rep.short_name) : (m.rep_name && m.rep_name !== m.owner_name ? ' with ' + UI.esc(m.rep_name) : '')}`)}
+      ${row('note', 'Sheet comments', m.comments ? UI.esc(m.comments) : '')}
+      ${row('note', 'Outcome notes', m.outcome_notes ? UI.esc(m.outcome_notes) : '')}
+      ${row('arrowRight', 'Next step', m.next_step ? UI.esc(m.next_step) + (m.next_step_due ? ` <span class="mono" style="color:var(--tx-3)">${UI.esc(m.next_step_due)}</span>` : '') : '')}
+      ${row('dollar', 'Value called', m.deal_value_usd ? UI.esc(UI.money(m.deal_value_usd)) : '')}
+    </div>
+
+    <div class="sec-h"><h2>Cards from this meeting</h2><span class="count">${ls.length}</span></div>
+    ${ls.length ? ls.map(leadCard).join('') : `<div class="hint" style="padding:4px 2px 12px">No card captured yet.</div>`}
+
+    <div class="sec-h" style="margin-top:6px"><h2>Change status</h2></div>
+    <div class="segs">
+      ${STATUSES.map(s => `<button data-act="status" data-id="${m.id}" data-v="${s.v}" aria-selected="${m.status === s.v}">${s.label}</button>`).join('')}
+    </div>`;
+
+  UI.openSheet({ title: m.company_name, sub: [m.prospect_name, m.geo_region].filter(Boolean).join(' · ') || UI.fmtDate(m.meeting_date), body });
+  hydrateThumbs();
+}
+
+function openOutcome(id) {
+  const m = S.meetings.find(x => x.id === id);
+  if (!m) return;
+  let pick = m.outcome || null;
+
+  const body = `
+    <div class="outs" id="outGrid">
+      ${OUTCOMES.map(o => `<button class="outbtn" data-v="${o.v}" aria-pressed="${pick === o.v}">
+        <span class="oi">${I[o.icon] || I.bolt}</span>
+        <span class="ot">${o.label}</span>
+        <span class="od">${o.desc}</span>
+      </button>`).join('')}
+    </div>
+    <div id="outExtra" style="margin-top:16px">
+      <div class="field" id="valWrap" ${pick === 'deal' || pick === 'hot' ? '' : 'hidden'}>
+        <label for="o_val">Deal value if it lands (USD)</label>
+        <input class="input mono" id="o_val" type="number" inputmode="numeric" min="0" step="1000"
+               placeholder="50000" value="${m.deal_value_usd != null ? UI.esc(m.deal_value_usd) : ''}">
+      </div>
+      <div class="field">
+        <label for="o_next">Next step</label>
+        <input class="input" id="o_next" placeholder="Send mapping sample, follow up Monday" value="${UI.esc(m.next_step || '')}">
+      </div>
+      <div class="field">
+        <label for="o_due">Follow up by</label>
+        <input class="input mono" id="o_due" type="date" value="${UI.esc(m.next_step_due || '')}">
+      </div>
+      <div class="field">
+        <label for="o_notes">What actually happened</label>
+        <textarea class="input" id="o_notes" placeholder="Who was in the room, what they run today, what they pushed back on.">${UI.esc(m.outcome_notes || '')}</textarea>
+      </div>
+    </div>`;
+
+  UI.openSheet({
+    title: m.outcome ? 'Update the call' : 'How did it go?',
+    sub: m.company_name,
+    body,
+    foot: `<button class="btn ghost" data-x>Cancel</button><button class="btn primary" data-save disabled>Save outcome</button>`,
+    onMount(b, f) {
+      const save = f.querySelector('[data-save]');
+      save.disabled = !pick;
+      b.querySelectorAll('.outbtn').forEach(btn => {
+        btn.onclick = () => {
+          pick = btn.dataset.v;
+          b.querySelectorAll('.outbtn').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.v === pick)));
+          b.querySelector('#valWrap').hidden = !(pick === 'deal' || pick === 'hot');
+          save.disabled = false;
+          UI.buzz();
+        };
+      });
+      f.querySelector('[data-x]').onclick = () => UI.closeSheet();
+      save.onclick = async () => {
+        const prev = { outcome: m.outcome, status: m.status, deal_value_usd: m.deal_value_usd, next_step: m.next_step, next_step_due: m.next_step_due, outcome_notes: m.outcome_notes, met_at: m.met_at };
+        const val = b.querySelector('#o_val').value;
+        const values = {
+          outcome: pick,
+          status: ['no_deal', 'unqualified', 'deal', 'hot', 'nurture'].includes(pick) ? 'met' : m.status,
+          deal_value_usd: (pick === 'deal' || pick === 'hot') && val !== '' ? Number(val) : null,
+          next_step: b.querySelector('#o_next').value.trim() || null,
+          next_step_due: b.querySelector('#o_due').value || null,
+          outcome_notes: b.querySelector('#o_notes').value.trim() || null,
+          met_at: m.met_at || new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        UI.closeSheet();
+        await Store.updateMeeting(m.id, values, {
+          activity: {
+            kind: 'outcome_' + pick,
+            summary: `called ${OUT_MAP[pick].label.toLowerCase()} on ${m.company_name}`,
+            payload: { outcome: pick, value: values.deal_value_usd }
+          }
+        });
+        UI.buzz(18);
+        UI.toast(`${OUT_MAP[pick].label} logged on ${m.company_name}`, {
+          kind: pick === 'deal' ? 'ok' : '', action: 'Undo',
+          onAction: () => Store.updateMeeting(m.id, { ...prev, updated_at: new Date().toISOString() })
+            .then(() => UI.toast('Reverted'))
+        });
+        render();
+      };
+    }
+  });
+}
+
+/* ---- lead detail ---- */
+function openLead(id) {
+  const l = S.leads.find(x => x.id === id);
+  if (!l) return;
+  const mtg = l.meeting_id ? S.meetings.find(m => m.id === l.meeting_id) : null;
+  const who = UI.memberById(l.captured_by);
+  const img = l._local_front || (l.card_front_path ? S.thumbs[l.card_front_path] : '');
+
+  const row = (icon, k, v, actions = '') => v ? `<div class="drow">
+    <span class="di">${I[icon] || I.info}</span>
+    <span class="dv"><span class="k">${UI.esc(k)}</span><span class="v">${v}</span></span>
+    ${actions ? `<span class="da">${actions}</span>` : ''}</div>` : '';
+
+  const body = `
+    ${img ? `<div class="cardprev"><img src="${UI.esc(img)}" alt="Business card"></div>`
+          : (l.card_front_path ? `<div class="cardprev" data-bigthumb="${UI.esc(l.card_front_path)}" style="min-height:90px;display:grid;place-items:center;color:var(--tx-3)">${I.image}</div>` : '')}
+
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
+      ${l.interest ? UI.tagFor(l.interest) : '<span class="tag">Unrated</span>'}
+      ${l.geo_region ? `<span class="tag">${UI.esc(l.geo_region)}</span>` : ''}
+      ${l.ocr_provider ? `<span class="tag brand">${UI.esc(l.ocr_provider.startsWith('ai') ? 'AI read' : 'Device read')}</span>` : ''}
+      ${l._dirty || l.synced === false ? '<span class="tag hot">Queued</span>' : ''}
+    </div>
+
+    <div style="display:flex;gap:9px;margin-bottom:16px">
+      ${l.email ? `<a class="btn primary" style="flex:1" href="mailto:${UI.esc(l.email)}">${I.mail}Email</a>` : ''}
+      ${l.phone ? `<a class="btn" style="flex:1" href="tel:${UI.esc(String(l.phone).replace(/\s/g, ''))}">${I.phone}Call</a>` : ''}
+      <button class="btn ghost" data-act="editLead" data-id="${l.id}" style="flex:none">${I.edit}</button>
+    </div>
+
+    <div class="card" style="padding:4px 13px;margin-bottom:16px">
+      ${row('briefcase', 'Title', UI.esc(l.designation || ''))}
+      ${row('building', 'Company', UI.esc(l.company || ''))}
+      ${row('mail', 'Email', l.email ? UI.esc(l.email) : '', l.email ? `<button class="iconbtn" data-act="copy" data-v="${UI.esc(l.email)}" aria-label="Copy">${I.copy}</button>` : '')}
+      ${row('phone', 'Phone', l.phone ? UI.esc(l.phone) : '', l.phone ? `<button class="iconbtn" data-act="copy" data-v="${UI.esc(l.phone)}" aria-label="Copy">${I.copy}</button>` : '')}
+      ${row('phone', 'Second number', UI.esc(l.phone_2 || ''))}
+      ${row('globe', 'Website', l.website ? `<a href="https://${UI.esc(l.website.replace(/^https?:\/\//, ''))}" target="_blank" rel="noopener">${UI.esc(l.website)}</a>` : '')}
+      ${row('link', 'LinkedIn', l.linkedin ? `<a href="${UI.esc(l.linkedin)}" target="_blank" rel="noopener">Profile</a>` : '')}
+      ${row('pin', 'Address', UI.esc(l.address || ''))}
+      ${row('note', 'Notes', l.notes ? UI.esc(l.notes) : '')}
+      ${row('arrowRight', 'Next step', l.next_step ? UI.esc(l.next_step) + (l.next_step_due ? ` <span class="mono" style="color:var(--tx-3)">${UI.esc(l.next_step_due)}</span>` : '') : '')}
+      ${row('calendar', 'Meeting', mtg ? UI.esc(mtg.company_name) + ' · ' + UI.esc(UI.fmtDate(mtg.meeting_date)) : '',
+        mtg ? `<button class="iconbtn" data-act="meeting" data-id="${mtg.id}" aria-label="Open meeting">${I.chev}</button>` : '')}
+      ${row('user', 'Captured by', `${UI.esc(who?.short_name || l.captured_by_name || '—')} · ${UI.esc(UI.ago(l.created_at))}`)}
+    </div>
+
+    <div class="sec-h"><h2>Rate the interest</h2></div>
+    <div class="segs" style="margin-bottom:16px">
+      ${OUTCOMES.map(o => `<button data-act="rate" data-id="${l.id}" data-v="${o.v}" aria-selected="${l.interest === o.v}">${o.label}</button>`).join('')}
+    </div>
+
+    ${!l.meeting_id ? `<button class="btn ghost block" data-act="linkMeeting" data-id="${l.id}" style="margin-bottom:10px">${I.link}Attach to a meeting</button>` : ''}
+    <button class="btn danger block" data-act="delLead" data-id="${l.id}">${I.trash}Delete this contact</button>`;
+
+  UI.openSheet({ title: l.full_name || 'Contact', sub: [l.designation, l.company].filter(Boolean).join(' · '), body });
+  hydrateThumbs();
+}
+
+/* ---- editors ---- */
+const F = (id, label, value = '', attrs = '', hint = '') => `<div class="field">
+  <label for="${id}">${UI.esc(label)}</label>
+  <input class="input" id="${id}" value="${UI.esc(value)}" ${attrs}>
+  ${hint ? `<div class="hint">${UI.esc(hint)}</div>` : ''}</div>`;
+const TA = (id, label, value = '', ph = '') => `<div class="field">
+  <label for="${id}">${UI.esc(label)}</label>
+  <textarea class="input" id="${id}" placeholder="${UI.esc(ph)}">${UI.esc(value)}</textarea></div>`;
+const SEL = (id, label, value, opts, blank = '—') => `<div class="field">
+  <label for="${id}">${UI.esc(label)}</label>
+  <select class="sel" id="${id}">
+    <option value="">${UI.esc(blank)}</option>
+    ${opts.map(o => {
+      const v = typeof o === 'string' ? o : o.v, t = typeof o === 'string' ? o : o.label;
+      return `<option value="${UI.esc(v)}" ${String(value || '') === String(v) ? 'selected' : ''}>${UI.esc(t)}</option>`;
+    }).join('')}
+  </select></div>`;
+
+function openEditLead(id) {
+  const l = S.leads.find(x => x.id === id);
+  if (!l) return;
+  const body = `
+    ${F('e_name', 'Full name', l.full_name, 'autocapitalize="words"')}
+    ${F('e_title', 'Job title', l.designation)}
+    ${F('e_co', 'Company', l.company, 'autocapitalize="words"')}
+    <div class="grid2">${F('e_email', 'Email', l.email, 'type="email" inputmode="email" autocapitalize="none" spellcheck="false"')}${F('e_phone', 'Phone', l.phone, 'type="tel" inputmode="tel"')}</div>
+    <div class="grid2">${F('e_phone2', 'Second number', l.phone_2, 'type="tel" inputmode="tel"')}${F('e_web', 'Website', l.website, 'autocapitalize="none" spellcheck="false"')}</div>
+    ${F('e_li', 'LinkedIn', l.linkedin, 'autocapitalize="none" spellcheck="false"')}
+    ${SEL('e_region', 'Region', l.geo_region, REGIONS)}
+    ${F('e_addr', 'Address', l.address)}
+    ${TA('e_notes', 'Notes', l.notes, 'What they run today, what they need, who decides.')}
+    <div class="grid2">${F('e_next', 'Next step', l.next_step)}${F('e_due', 'Follow up by', l.next_step_due, 'type="date" class="input mono"')}</div>`;
+
+  UI.openSheet({
+    title: 'Edit contact', sub: l.full_name || l.company || '', body,
+    foot: `<button class="btn ghost" data-x>Cancel</button><button class="btn primary" data-save>Save</button>`,
+    onMount(b, f) {
+      f.querySelector('[data-x]').onclick = () => UI.closeSheet();
+      f.querySelector('[data-save]').onclick = async () => {
+        const g = s => b.querySelector(s).value.trim() || null;
+        UI.closeSheet();
+        await Store.updateLead(l.id, {
+          full_name: g('#e_name'), designation: g('#e_title'), company: g('#e_co'),
+          email: (g('#e_email') || '').toLowerCase() || null, phone: g('#e_phone'), phone_2: g('#e_phone2'),
+          website: g('#e_web'), linkedin: g('#e_li'), geo_region: g('#e_region'),
+          address: g('#e_addr'), notes: g('#e_notes'),
+          next_step: g('#e_next'), next_step_due: g('#e_due'),
+          updated_at: new Date().toISOString()
+        });
+        UI.toast('Contact updated', { kind: 'ok' });
+        render();
+      };
+    }
+  });
+}
+
+function openAddMeeting(prefill = {}) {
+  const days = eventDays();
+  const now = UI.nowInTz();
+  const body = `
+    ${F('m_co', 'Company', prefill.company_name || '', 'required autocapitalize="words" placeholder="Who did you meet"')}
+    <div class="grid2">
+      ${SEL('m_day', 'Day', prefill.meeting_date || (days.includes(now.date) ? now.date : days[0]), days.map(d => ({ v: d, label: UI.fmtDate(d) })), 'Pick a day')}
+      ${F('m_time', 'Time', prefill.meeting_time || String(Math.floor(now.min / 60)).padStart(2, '0') + ':' + String(now.min % 60).padStart(2, '0'), 'type="time" class="input mono"')}
+    </div>
+    ${F('m_person', 'Who you met', prefill.prospect_name || '', 'autocapitalize="words"')}
+    ${F('m_title', 'Their title', prefill.designation || '')}
+    <div class="grid2">
+      ${F('m_email', 'Email', prefill.email || '', 'type="email" inputmode="email" autocapitalize="none" spellcheck="false"')}
+      ${F('m_mobile', 'Mobile', prefill.mobile || '', 'type="tel" inputmode="tel"')}
+    </div>
+    <div class="grid2">
+      ${SEL('m_region', 'Region', prefill.geo_region || '', REGIONS)}
+      ${SEL('m_cat', 'Business type', prefill.category || 'New Business', CATEGORIES)}
+    </div>
+    ${SEL('m_owner', 'Owner on our side', S.me?.user_id, S.members.map(x => ({ v: x.user_id, label: x.short_name })), 'Unassigned')}
+    ${SEL('m_rep', 'Inside sales support', prefill.rep_id || '', S.members.filter(x => x.role === 'rep').map(x => ({ v: x.user_id, label: x.short_name })), 'None')}
+    ${F('m_loc', 'Where', prefill.location || '', 'placeholder="Our stand, their stand, lounge"')}
+    ${TA('m_notes', 'Notes', '', 'Context you want to remember.')}`;
+
+  UI.openSheet({
+    title: 'Add a walk-in', sub: 'Anyone you picked up on the floor', body,
+    foot: `<button class="btn ghost" data-x>Cancel</button><button class="btn primary" data-save>Add meeting</button>`,
+    onMount(b, f) {
+      f.querySelector('[data-x]').onclick = () => UI.closeSheet();
+      f.querySelector('[data-save]').onclick = async () => {
+        const g = s => b.querySelector(s).value.trim() || null;
+        const co = g('#m_co');
+        if (!co) { b.querySelector('#m_co').classList.add('err'); b.querySelector('#m_co').focus(); return; }
+        const ownerId = g('#m_owner'), repId = g('#m_rep');
+        UI.closeSheet();
+        const row = await Store.addMeeting({
+          company_name: co, meeting_date: g('#m_day'), meeting_time: g('#m_time'),
+          prospect_name: g('#m_person'), designation: g('#m_title'),
+          email: (g('#m_email') || '').toLowerCase() || null, mobile: g('#m_mobile'),
+          geo_region: g('#m_region'), category: g('#m_cat'),
+          owner_id: ownerId, owner_name: UI.memberById(ownerId)?.short_name || null,
+          rep_id: repId, rep_name: UI.memberById(repId)?.short_name || null,
+          location: g('#m_loc'), comments: g('#m_notes'),
+          source: 'walkin', status: 'met', duration_min: 30
+        });
+        UI.toast(`${co} added`, { kind: 'ok', action: 'Log outcome', onAction: () => openOutcome(row.id) });
+        render(); renderDayRail();
+      };
+    }
+  });
+}
+
+function openEditMeeting(id) {
+  const m = S.meetings.find(x => x.id === id);
+  if (!m) return;
+  const days = eventDays();
+  const body = `
+    ${F('x_co', 'Company', m.company_name, 'autocapitalize="words"')}
+    <div class="grid2">
+      ${SEL('x_day', 'Day', m.meeting_date, days.map(d => ({ v: d, label: UI.fmtDate(d) })), 'Unscheduled')}
+      ${F('x_time', 'Time', (m.meeting_time || '').slice(0, 5), 'type="time" class="input mono"')}
+    </div>
+    <div class="grid2">
+      ${F('x_person', 'Who you met', m.prospect_name || '', 'autocapitalize="words"')}
+      ${F('x_title', 'Their title', m.designation || '')}
+    </div>
+    <div class="grid2">
+      ${F('x_email', 'Email', m.email || '', 'type="email" inputmode="email" autocapitalize="none" spellcheck="false"')}
+      ${F('x_mobile', 'Mobile', m.mobile || '', 'type="tel" inputmode="tel"')}
+    </div>
+    <div class="grid2">
+      ${SEL('x_region', 'Region', m.geo_region || '', REGIONS)}
+      ${SEL('x_cat', 'Business type', m.category || '', CATEGORIES)}
+    </div>
+    ${SEL('x_owner', 'Owner', m.owner_id || '', S.members.map(x => ({ v: x.user_id, label: x.short_name })), 'Unassigned')}
+    ${SEL('x_rep', 'Inside sales', m.rep_id || '', S.members.map(x => ({ v: x.user_id, label: x.short_name })), 'None')}
+    ${F('x_loc', 'Where', m.location || '')}
+    ${TA('x_notes', 'Comments', m.comments || '')}`;
+
+  UI.openSheet({
+    title: 'Edit meeting', sub: m.company_name, body,
+    foot: `<button class="btn ghost" data-x>Cancel</button><button class="btn primary" data-save>Save</button>`,
+    onMount(b, f) {
+      f.querySelector('[data-x]').onclick = () => UI.closeSheet();
+      f.querySelector('[data-save]').onclick = async () => {
+        const g = s => b.querySelector(s).value.trim() || null;
+        const ownerId = g('#x_owner'), repId = g('#x_rep');
+        UI.closeSheet();
+        await Store.updateMeeting(m.id, {
+          company_name: g('#x_co') || m.company_name,
+          meeting_date: g('#x_day'), meeting_time: g('#x_time'),
+          prospect_name: g('#x_person'), designation: g('#x_title'),
+          email: (g('#x_email') || '').toLowerCase() || null, mobile: g('#x_mobile'),
+          geo_region: g('#x_region'), category: g('#x_cat'),
+          owner_id: ownerId, owner_name: UI.memberById(ownerId)?.short_name || null,
+          rep_id: repId, rep_name: UI.memberById(repId)?.short_name || null,
+          location: g('#x_loc'), comments: g('#x_notes'),
+          updated_at: new Date().toISOString()
+        });
+        UI.toast('Meeting updated', { kind: 'ok' });
+        render(); renderDayRail();
+      };
+    }
+  });
+}
+
+function openAddEvent() {
+  const body = `
+    ${F('v_name', 'Event name', '', 'required autocapitalize="words" placeholder="World Travel Market 2026"')}
+    <div class="grid2">${F('v_short', 'Short name', '', 'placeholder="WTM 26"')}${F('v_city', 'City', '', 'autocapitalize="words"')}</div>
+    ${F('v_venue', 'Venue', '', 'autocapitalize="words"')}
+    ${F('v_stand', 'Our stand', '', 'placeholder="ME1234"')}
+    <div class="grid2">${F('v_from', 'Starts', '', 'type="date" class="input mono"')}${F('v_to', 'Ends', '', 'type="date" class="input mono"')}</div>
+    ${SEL('v_tz', 'Timezone', 'Asia/Dubai', ['Asia/Dubai', 'Asia/Calcutta', 'Europe/London', 'Europe/Berlin', 'America/New_York', 'Asia/Singapore', 'Asia/Riyadh'], 'Pick one')}
+    <div class="hint">New events start empty. Add meetings as you book them, or send me the sheet and I will import it.</div>`;
+
+  UI.openSheet({
+    title: 'Create an event', sub: 'A separate floor, its own meetings and cards', body,
+    foot: `<button class="btn ghost" data-x>Cancel</button><button class="btn primary" data-save>Create</button>`,
+    onMount(b, f) {
+      f.querySelector('[data-x]').onclick = () => UI.closeSheet();
+      f.querySelector('[data-save]').onclick = async () => {
+        const g = s => b.querySelector(s).value.trim() || null;
+        const name = g('#v_name'), from = g('#v_from'), to = g('#v_to');
+        let bad = false;
+        [['#v_name', name], ['#v_from', from], ['#v_to', to]].forEach(([sel, v]) => {
+          b.querySelector(sel).classList.toggle('err', !v); if (!v) bad = true;
+        });
+        if (bad) return;
+        UI.closeSheet();
+        const ev = await Store.addEvent({
+          name, short_name: g('#v_short') || name, city: g('#v_city'), venue: g('#v_venue'),
+          stand: g('#v_stand'), starts_on: from, ends_on: to, timezone: g('#v_tz') || 'Asia/Dubai'
+        });
+        UI.toast(`${name} created`, { kind: 'ok', action: 'Open', onAction: () => doSwitchEvent(ev.id) });
+        render();
+      };
+    }
+  });
+}
+
+function openSwitchEvent() {
+  const body = S.events.map(e => `<button class="matchopt" data-act="pickEvent" data-id="${e.id}" aria-pressed="${e.id === S.eventId}">
+      <span class="mi">${I.calendar}</span>
+      <span class="mb"><span class="m1">${UI.esc(e.name)}</span>
+      <span class="m2">${UI.esc([e.city, `${UI.fmtDate(e.starts_on)} to ${UI.fmtDate(e.ends_on)}`].filter(Boolean).join(' · '))}</span></span>
+      ${e.id === S.eventId ? `<span style="color:var(--brand-2);display:flex">${I.check}</span>` : ''}
+    </button>`).join('') +
+    `<button class="btn ghost block" data-act="addEvent" style="margin-top:12px">${I.plus}Create a new event</button>`;
+  UI.openSheet({ title: 'Events', sub: 'Pick the floor you are on', body });
+}
+
+async function doSwitchEvent(id) {
+  UI.closeSheet();
+  await Store.switchEvent(id);
+  V.day = null;
+  renderDayRail(); render();
+  UI.toast(`Now on ${UI.activeEvent()?.name || 'event'}`);
+}
+
+function openTeam() {
+  const body = `<div class="card lb">${S.members.map(m => {
+    const mine = S.meetings.filter(x => x.owner_id === m.user_id || x.rep_id === m.user_id);
+    return `<div class="lbrow${m.user_id === meId() ? ' me' : ''}">
+      ${UI.avatar(m, 'sm')}
+      <span class="who"><span class="n">${UI.esc(m.full_name)}${m.user_id === meId() ? ' · you' : ''}</span>
+      <span class="s">${UI.esc(m.title || (m.role === 'leader' ? 'Leadership' : 'Inside sales'))} · ${mine.length} meetings</span></span>
+      <span class="nums"><span class="big">${mine.filter(x => x.outcome === 'deal').length}</span><span class="sm">DEALS</span></span>
+    </div>`;
+  }).join('')}</div>`;
+  UI.openSheet({ title: 'On the floor', sub: `${S.members.length} people`, body });
+}
+
+/* ---- attach lead to meeting ---- */
+function openLinkMeeting(leadId) {
+  const l = S.leads.find(x => x.id === leadId);
+  if (!l) return;
+  const cands = matchMeetings(l).slice(0, 12);
+  const list = cands.length ? cands : scoped(S.meetings).slice(0, 20).map(m => ({ m, score: 0 }));
+  const body = `<div class="matchbox"><div class="mh">Best guesses first</div>
+    ${list.map(({ m }) => `<button class="matchopt" data-act="doLink" data-id="${l.id}" data-m="${m.id}">
+      <span class="mi">${I.calendar}</span>
+      <span class="mb"><span class="m1">${UI.esc(m.company_name)}</span>
+      <span class="m2">${UI.esc(UI.fmtDate(m.meeting_date))} · ${UI.esc(UI.fmtTimeStr(m.meeting_time))}${m.prospect_name ? ' · ' + UI.esc(m.prospect_name) : ''}</span></span>
+    </button>`).join('')}</div>`;
+  UI.openSheet({ title: 'Attach to a meeting', sub: l.full_name || l.company || '', body });
+}
+
+function norm(s) {
+  return String(s || '').toLowerCase()
+    .replace(/\b(llc|ltd|limited|inc|corp|corporation|co|company|gmbh|plc|pvt|private|group|holdings?|international|global|the|and|&|dmc|travel|tours?|tourism|hotels?|technologies|technology|solutions?|services?|systems?)\b/g, ' ')
+    .replace(/[^a-z0-9]+/g, ' ').trim();
+}
+function matchMeetings(l) {
+  const co = norm(l.company);
+  const dom = (l.email || '').split('@')[1] || (l.website || '').replace(/^www\./, '');
+  const toks = co.split(' ').filter(t => t.length > 2);
+  const out = [];
+  S.meetings.forEach(m => {
+    let sc = 0;
+    const mco = norm(m.company_name);
+    if (co && mco) {
+      if (mco === co) sc += 60;
+      else if (mco.includes(co) || co.includes(mco)) sc += 40;
+      else {
+        const mt = mco.split(' ');
+        const hit = toks.filter(t => mt.includes(t)).length;
+        if (hit) sc += hit * 16;
+      }
+    }
+    if (dom) {
+      const md = (m.domain || (m.email || '').split('@')[1] || '').replace(/^www\./, '').toLowerCase();
+      if (md && (md === dom.toLowerCase() || md.includes(dom.toLowerCase()))) sc += 50;
+    }
+    if (l.email && m.email && l.email.toLowerCase() === m.email.toLowerCase()) sc += 70;
+    if (l.full_name && m.prospect_name && norm(l.full_name) === norm(m.prospect_name)) sc += 45;
+    if (isMine(m)) sc += 6;
+    if (m.meeting_date === UI.nowInTz().date) sc += 5;
+    if (sc >= 20) out.push({ m, score: sc });
+  });
+  return out.sort((a, b) => b.score - a.score);
+}
+
+/* ---- thumbs ---- */
+async function hydrateThumbs() {
+  const holders = UI.$$('[data-thumb]').filter(e => e.dataset.thumb);
+  const bigs = UI.$$('[data-bigthumb]').filter(e => e.dataset.bigthumb);
+  for (const el of holders) {
+    const url = await Store.thumb(el.dataset.thumb);
+    if (!url) continue;
+    const img = document.createElement('img');
+    img.className = 'thumb'; img.src = url; img.alt = ''; img.loading = 'lazy';
+    el.replaceWith(img);
+  }
+  for (const el of bigs) {
+    const url = await Store.thumb(el.dataset.bigthumb);
+    if (!url) continue;
+    el.innerHTML = `<img src="${UI.esc(url)}" alt="Business card">`;
+    el.removeAttribute('data-bigthumb'); el.style.minHeight = '';
+  }
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function render() {
+  const main = UI.$('#main');
+  const map = { today: viewToday, leads: viewLeads, scan: viewScan, board: viewBoard, me: viewMe };
+  const fn = map[V.tab] || viewToday;
+  main.innerHTML = `<div class="page">${fn()}</div>`;
+  hydrateThumbs();
+  UI.$$('.tab').forEach(t => t.setAttribute('aria-selected', String(t.dataset.t === V.tab)));
+  UI.$('#dayrail').hidden = !(V.tab === 'today' || V.tab === 'board');
+
+  const badge = S.meetings.filter(m => isMine(m) && !m.outcome && m.meeting_date === UI.nowInTz().date).length;
+  const tt = UI.$('.tab[data-t="today"]');
+  tt.querySelector('.bdg')?.remove();
+  if (badge && V.tab !== 'today') tt.insertAdjacentHTML('afterbegin', `<span class="bdg">${badge > 99 ? '99+' : badge}</span>`);
+}
+
+window.Views = {
+  V, render, renderDayRail, eventDays, isMine, meId, liveInfo,
+  openMeeting, openOutcome, openLead, openEditLead, openAddMeeting, openEditMeeting,
+  openAddEvent, openSwitchEvent, doSwitchEvent, openTeam, openLinkMeeting,
+  matchMeetings, leadCard, hydrateThumbs, scoped, dayFilter
+};
