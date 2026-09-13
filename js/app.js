@@ -588,26 +588,35 @@ async function openVoice(table, id) {
         const an = ac.createAnalyser(); an.fftSize = 64;
         ac.createMediaStreamSource(recStream).connect(an);
         const buf = new Uint8Array(an.frequencyBinCount);
-        let quiet = 0, warned = false;
+        /* On iOS the analyser often reports flat zeros while the recording is
+           perfectly fine, so the meter is only trusted once it has actually
+           heard something. Until then no warning, and the bars move on a timer
+           so the sheet does not look broken. */
+        let quiet = 0, warned = false, heard = false;
         recTimer = setInterval(() => {
           const ms = Date.now() - recStart;
           const t = $('#vcT'); if (t) t.textContent = clock(ms);
           an.getByteFrequencyData(buf);
           const peak = Math.max(...buf);
-          /* a rep who sees flat bars needs to know the mic is not picking up */
-          if (peak < 3) quiet++; else { quiet = 0; if (warned) { const w = $('#vcQ'); if (w) w.remove(); warned = false; } }
-          if (quiet > 22 && !warned) {
+          if (peak >= 4) {
+            heard = true; quiet = 0;
+            if (warned) { const w = $('#vcQ'); if (w) w.remove(); warned = false; }
+          } else if (heard) quiet++;
+          /* it went quiet after we know the meter works, so the mic is covered */
+          if (heard && quiet > 55 && !warned) {
             warned = true;
             const live = document.querySelector('.reclive');
             if (live) live.insertAdjacentHTML('afterend',
-              `<p class="hint" id="vcQ" style="margin:10px 2px 0;color:var(--hot)">We are not picking up any sound. Check the microphone is not covered or muted.</p>`);
+              `<p class="hint" id="vcQ" style="margin:10px 2px 0;color:var(--hot)">We stopped picking up sound. Check the microphone is not covered.</p>`);
           }
           const bars = $('#vcBars');
           if (bars) {
             const n = bars.children.length;
             for (let i = 0; i < n; i++) {
-              const v = buf[Math.floor(i / n * buf.length)] / 255;
-              bars.children[i].style.transform = `scaleY(${Math.max(0.08, Math.min(1, v * 1.7))})`;
+              const v = heard
+                ? buf[Math.floor(i / n * buf.length)] / 255
+                : 0.18 + 0.14 * Math.sin(ms / 260 + i * 0.5);
+              bars.children[i].style.transform = `scaleY(${Math.max(0.08, Math.min(1, v * (heard ? 1.7 : 1)))})`;
             }
           }
           if (ms >= CFG.voiceMaxMs) { toast('Reached the time limit'); stop(); ac.close(); }

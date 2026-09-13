@@ -542,12 +542,14 @@ function capMedia(tb, r, who) {
         <div class="vn-m"><b>Voice note</b>${dur ? `<span class="mono">${dur}</span>` : ''}</div>
         <button class="iconbtn" data-act="delVoice" data-id="${r.id}" data-tb="${tb}" aria-label="Delete voice note">${I.trash}</button>
       </div>
-      <button class="vn-play" data-act="playVoice" data-id="${r.id}" data-tb="${tb}">${I.play}Play the recording</button>
+      <div class="vn-act">
+        <button class="vn-play" data-act="playVoice" data-id="${r.id}" data-tb="${tb}">${I.play}Play</button>
+        <button class="vn-play" data-act="retranscribe" data-id="${r.id}" data-tb="${tb}" data-lbl="${r.voice_transcript ? 'Write it up again' : 'Write it up'}">${I.sparkle}${r.voice_transcript ? 'Write it up again' : 'Write it up'}</button>
+      </div>
       <audio controls hidden preload="none"></audio>
       ${r.voice_transcript
         ? `<p class="vn-tx">${UI.esc(r.voice_transcript)}</p>`
-        : `<div class="vn-none"><span>No write-up yet.</span>
-             <button class="btn ghost sm" data-act="retranscribe" data-id="${r.id}" data-tb="${tb}">${I.sparkle}Write it up</button></div>`}
+        : `<div class="vn-none"><span>No write-up yet. The audio is saved, so you can run it any time.</span></div>`}
     </div>` : ''}
     ${r.selfie_path ? `<button class="selfie" data-act="zoom" data-p="${UI.esc(r.selfie_path)}" data-who="${UI.esc(who || '')}">
       <img data-selfie="${UI.esc(r.selfie_path)}" alt="Photo with ${UI.esc(who || 'them')}">

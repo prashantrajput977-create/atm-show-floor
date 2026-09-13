@@ -1587,13 +1587,16 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
 .vn-m { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 8px; }
 .vn-m b { font: 600 13.5px/1.2 inherit; }
 .vn-m span { font: 500 12px/1 var(--ff-mono); color: var(--tx-3); }
+.vn-act { display: grid; grid-template-columns: auto 1fr; gap: 8px; margin-top: 11px; }
 .vn-play {
   display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%;
-  margin-top: 11px; padding: 9px; border: 1px solid var(--line); border-radius: var(--r);
+  padding: 9px 12px; border: 1px solid var(--line); border-radius: var(--r);
   background: var(--surf-2); color: var(--tx); font: 600 12.5px/1 inherit; cursor: pointer;
+  white-space: nowrap; transition: border-color .16s, background .16s;
 }
 .vn-play:hover { border-color: var(--line-2); }
-.vn-play svg { width: 14px; height: 14px; color: var(--brand); }
+.vn-play:disabled { opacity: .6; cursor: default; }
+.vn-play svg { flex: none; width: 14px; height: 14px; color: var(--brand); }
 .vnote audio { width: 100%; height: 36px; margin-top: 11px; }
 .vn-tx {
   margin: 12px 0 0; padding-top: 12px; border-top: 1px solid var(--line);
