@@ -612,7 +612,11 @@ async function transcribe(blob) {
     r.onerror = rej;
     r.readAsDataURL(blob);
   });
-  const { data, error } = await SB.functions.invoke(CFG.voiceFn, { body: { audio: b64, mime: blob.type || 'audio/webm' } });
+  /* send the payload only, never the data: header, and strip the codec
+     parameter off the label so the function gets a clean container name */
+  const clean = b64.includes(',') ? b64.slice(b64.indexOf(',') + 1) : b64;
+  const mime = (blob.type || 'audio/webm').split(';')[0].trim();
+  const { data, error } = await SB.functions.invoke(CFG.voiceFn, { body: { audio: clean, mime } });
   if (error) {
     let msg = error.message || 'transcription failed';
     try { const j = await error.context?.json?.(); if (j?.message || j?.error) msg = j.message || j.error; } catch (e) {}
