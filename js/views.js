@@ -9,7 +9,8 @@ const V = {
   leadFilter: 'all',
   wkScope: 'mine',    // mine | team, walk-ins tab
   q: '',
-  boardDay: 'event'   // event | day
+  boardDay: 'event',  // event | day
+  boardPane: 'board'  // board | team, admins only
 };
 window.V = V;
 
@@ -450,7 +451,16 @@ function viewScan() {
 /* ============================================================
    BOARD
    ============================================================ */
+function boardTabs() {
+  if (!Store.isAdmin()) return '';
+  return `<div class="segs" style="margin-bottom:12px" role="tablist">
+    <button role="tab" data-bp="board" aria-selected="${V.boardPane !== 'team'}">Numbers</button>
+    <button role="tab" data-bp="team" aria-selected="${V.boardPane === 'team'}">Team</button>
+  </div>`;
+}
+
 function viewBoard() {
+  if (Store.isAdmin() && V.boardPane === 'team') return boardTabs() + teamPane();
   const inDay = V.boardDay === 'day' && V.day !== 'all';
   const mtgs = inDay ? S.meetings.filter(m => m.meeting_date === V.day) : S.meetings;
   const leads = inDay ? S.leads.filter(l => {
@@ -493,7 +503,7 @@ function viewBoard() {
   const regions = tally(mtgs, m => m.geo_region || 'Unspecified');
   const cats = tally(mtgs, m => m.category ? shortCat(m.category) : 'Unspecified');
 
-  return `
+  return boardTabs() + `
   <div class="segs" style="margin-bottom:14px">
     <button data-bd="event" aria-selected="${V.boardDay === 'event'}">Whole event</button>
     <button data-bd="day" aria-selected="${V.day === 'all' ? 'false' : String(V.boardDay === 'day')}">${V.day === 'all' ? 'Single day' : UI.fmtDate(V.day)}</button>
@@ -840,6 +850,11 @@ function feedRow(a) {
 /* ============================================================
    ME
    ============================================================ */
+function notifState() {
+  if (!('Notification' in window)) return 'none';
+  return Notification.permission === 'granted' ? 'granted' : Notification.permission === 'denied' ? 'none' : 'ask';
+}
+
 function viewMe() {
   const me = S.me || {};
   const mine = S.meetings.filter(isMine);
@@ -889,8 +904,24 @@ function viewMe() {
   </div>
 
   <div class="sec">
+    <div class="sec-h"><h2>End of day</h2></div>
+    <div style="display:flex;flex-direction:column;gap:9px">
+      <button class="btn primary block" data-act="wrap" data-id="${V.day && V.day !== 'all' ? V.day : UI.nowInTz().date}">${I.days}Wrap up the day</button>
+      ${notifState() === 'granted'
+        ? `<div class="card" style="padding:12px 13px;display:flex;gap:9px;align-items:center">
+             <span class="di">${I.bell}</span>
+             <span class="dv"><span class="k">Reminders</span><span class="v">On. We will tap you when a meeting finishes.</span></span>
+           </div>`
+        : notifState() === 'none'
+          ? ''
+          : `<button class="btn block" data-act="remindMe">${I.bell}Remind me when a meeting finishes</button>`}
+    </div>
+  </div>
+
+  <div class="sec">
     <div class="sec-h"><h2>Actions</h2></div>
     <div style="display:flex;flex-direction:column;gap:9px">
+      ${Store.isAdmin() ? `<button class="btn block" data-act="console">${I.grid}Open the floor console</button>` : ''}
       <button class="btn block" data-act="addMeeting">${I.plus}Add a walk-in meeting</button>
       <button class="btn block" data-act="addEvent">${I.calendar}Create a new event</button>
       <button class="btn block" data-act="export">${I.download}Export to CSV</button>
@@ -1553,6 +1584,7 @@ function render() {
       { act: 'hardReload', label: 'Reload the app', icon: 'refresh' })}</div>`;
   }
   hydrateThumbs();
+  paintNudge();
   UI.$$('.tab').forEach(t => t.setAttribute('aria-selected', String(t.dataset.t === V.tab)));
   const titles = { today: 'Today', agenda: 'All days', leads: 'Leads', walkins: 'Walk-ins', scan: 'Scan a card', board: 'Analytics', me: 'You' };
   const vt = UI.$('#viewTitle');
@@ -1565,9 +1597,249 @@ function render() {
   if (badge && V.tab !== 'today') tt.insertAdjacentHTML('afterbegin', `<span class="bdg">${badge > 99 ? '99+' : badge}</span>`);
 }
 
+/* ============================================================
+   THE NUDGE — the floor moves faster than memory
+   ============================================================ */
+const NKEY = 'sf_nudge_v1';
+function nRead() { try { return JSON.parse(localStorage.getItem(NKEY) || '{}'); } catch (e) { return {}; } }
+function nWrite(o) { try { localStorage.setItem(NKEY, JSON.stringify(o)); } catch (e) {} }
+function slotEnd(m) { const st = UI.toMin(m.meeting_time); return st == null ? null : st + (m.duration_min || 30); }
+
+/* Backing off further each time so a busy person is asked less, not more. */
+const SNOOZE = [25, 25, 45, 240];
+function nudgeLater(id) {
+  const o = nRead();
+  const e = o[id] || { n: 0 };
+  const mins = SNOOZE[Math.min(e.n, SNOOZE.length - 1)];
+  e.n = (e.n || 0) + 1;
+  e.until = Date.now() + mins * 60000;
+  o[id] = e; nWrite(o);
+  return mins;
+}
+function nudgeClear(id) { const o = nRead(); delete o[id]; nWrite(o); }
+
+/* Only the person who was actually in the room gets asked. Reps book the
+   meeting, they do not sit in it, so nudging them would be pure noise. */
+function nudgeQueue() {
+  if (!S.ready) return [];
+  const now = UI.nowInTz();
+  const o = nRead();
+  const after = CFG.nudgeAfterMin || 2;
+  return S.meetings
+    .filter(m => m.owner_id === meId() && m.meeting_date === now.date && !isDone(m))
+    .filter(m => { const e = slotEnd(m); return e != null && now.min >= e + after; })
+    .filter(m => !((o[m.id] || {}).until > Date.now()))
+    .sort((a, b) => slotEnd(b) - slotEnd(a));   /* freshest conversation first */
+}
+
+function paintNudge() {
+  const el = UI.$('#nudge');
+  if (!el) return;
+  const hidden = UI.$('#app').hidden || !UI.$('#sheet').hidden || document.body.classList.contains('nonudge');
+  const q = hidden ? [] : nudgeQueue();
+  if (!q.length) {
+    if (el.dataset.nid) {
+      el.dataset.nid = '';
+      el.classList.remove('on');
+      setTimeout(() => { if (!el.dataset.nid) { el.hidden = true; el.innerHTML = ''; } }, 240);
+    }
+    return;
+  }
+  const m = q[0];
+  const more = q.length - 1;
+  if (el.dataset.nid === m.id) {
+    const c = el.querySelector('.nd-more');
+    if (c) { c.textContent = more ? `${more} more waiting` : ''; c.hidden = !more; }
+    return;
+  }
+  el.dataset.nid = m.id;
+  el.innerHTML = `<div class="nudge">
+    <div class="nd-h"><span class="nd-dot"></span>Just wrapped · ${UI.esc(UI.fmtTimeStr(m.meeting_time))}
+      <button class="nd-x" data-act="nudgeLater" data-id="${m.id}">Later</button></div>
+    <h4>${UI.esc(m.company_name || 'This meeting')}</h4>
+    <div class="nd-s">${UI.esc([m.prospect_name, m.designation, m.geo_region].filter(Boolean).join(' · ') || 'Log it while it is fresh')}</div>
+    <div class="nd-b">
+      <button class="btn primary" data-act="nudgeMet" data-id="${m.id}">${I.handshake}They turned up</button>
+      <button class="btn" data-act="nudgeNo" data-id="${m.id}">${I.ban}No show</button>
+    </div>
+    <div class="nd-more"${more ? '' : ' hidden'}>${more ? more + ' more waiting' : ''}</div>
+  </div>`;
+  el.hidden = false;
+  requestAnimationFrame(() => el.classList.add('on'));
+  UI.buzz(12);
+}
+
+/* ============================================================
+   THE DAY WRAP — one honest look back before the stand closes
+   ============================================================ */
+function dayStats(date, list) {
+  const src = (list || S.meetings).filter(m => !date || date === 'all' || m.meeting_date === date);
+  const cards = S.leads.filter(l => {
+    if (!date || date === 'all') return true;
+    const m = l.meeting_id && S.meetings.find(x => x.id === l.meeting_id);
+    return m ? m.meeting_date === date : String(l.created_at || '').slice(0, 10) === date;
+  });
+  const open = src.filter(m => !isDone(m));
+  return {
+    total: src.length,
+    logged: src.filter(isDone).length,
+    open,
+    deal: src.filter(m => m.outcome === 'deal'),
+    hot: src.filter(m => m.outcome === 'future_opportunity'),
+    nurture: src.filter(m => m.outcome === 'nurture'),
+    missed: src.filter(m => m.outcome === 'no_show' || m.status === 'no_show'),
+    dropped: src.filter(m => m.outcome === 'no_deal' || m.outcome === 'unqualified'),
+    cards,
+    value: src.filter(m => m.outcome === 'deal').reduce((s, m) => s + (Number(m.deal_value_usd) || 0), 0),
+    pipe: src.filter(m => m.outcome === 'future_opportunity').reduce((s, m) => s + (Number(m.deal_value_usd) || 0), 0),
+    steps: src.filter(m => m.next_step).map(m => `${m.company_name}: ${m.next_step}`)
+  };
+}
+
+/* Plain text on purpose. It gets pasted into WhatsApp, not rendered. */
+function digestText(date, teamWide) {
+  const ev = UI.activeEvent();
+  const who = teamWide ? S.meetings : S.meetings.filter(isMine);
+  const s = dayStats(date, who);
+  const L = [];
+  L.push(`${ev?.short_name || ev?.name || 'Event'} · ${UI.fmtDate(date)}`);
+  L.push(teamWide ? 'Whole team' : (S.me?.short_name || 'My day'));
+  L.push('');
+  L.push(`Meetings ${s.total} · logged ${s.logged} · open ${s.open.length}`);
+  L.push(`Deals ${s.deal.length}${s.value ? ' (' + UI.money(s.value) + ')' : ''} · Future ${s.hot.length}${s.pipe ? ' (' + UI.money(s.pipe) + ')' : ''} · Nurture ${s.nurture.length}`);
+  L.push(`No show ${s.missed.length} · Closed out ${s.dropped.length} · Cards ${s.cards.length}`);
+  if (teamWide) {
+    const rows = S.members.filter(x => x.role !== 'rep')
+      .map(x => { const mine = S.meetings.filter(m => m.owner_id === x.user_id && m.meeting_date === date); return { x, t: mine.length, l: mine.filter(isDone).length, d: mine.filter(m => m.outcome === 'deal').length }; })
+      .filter(r => r.t).sort((a, b) => b.d - a.d || b.l - a.l);
+    if (rows.length) { L.push(''); rows.forEach(r => L.push(`${r.x.short_name}: ${r.l}/${r.t} logged, ${r.d} deal${r.d === 1 ? '' : 's'}`)); }
+  }
+  if (s.deal.length) { L.push(''); L.push('Deals'); s.deal.slice(0, 8).forEach(m => L.push(`- ${m.company_name}${m.deal_value_usd ? ' · ' + UI.money(m.deal_value_usd) : ''}`)); }
+  if (s.steps.length) { L.push(''); L.push('Next steps'); s.steps.slice(0, 8).forEach(t => L.push(`- ${t}`)); }
+  if (s.open.length) { L.push(''); L.push(`Still to log: ${s.open.slice(0, 10).map(m => m.company_name).join(', ')}`); }
+  return L.join('\n');
+}
+
+function openWrap(date, auto) {
+  const d = date && date !== 'all' ? date : (UI.nowInTz().date);
+  const teamWide = Store.isAdmin() || S.me?.role === 'leader';
+  const s = dayStats(d, S.meetings.filter(isMine));
+  const txt = digestText(d, teamWide);
+
+  UI.openSheet({
+    title: `${UI.fmtDate(d)} wrap`,
+    sub: auto ? 'Before the stand closes' : `${s.logged} of ${s.total} logged`,
+    body: `
+      <div class="kpis" style="margin-bottom:14px">
+        <div class="kpi brand"><div class="k">Logged</div><div class="v tnum">${s.logged}<i style="font-size:14px;color:var(--tx-3)">/${s.total}</i></div><div class="d">${s.open.length} still open</div></div>
+        <div class="kpi deal"><div class="k">Deals</div><div class="v tnum">${s.deal.length}</div><div class="d">${s.value ? UI.money(s.value) : 'none yet'}</div></div>
+        <div class="kpi hot"><div class="k">Future</div><div class="v tnum">${s.hot.length}</div><div class="d">${s.nurture.length} nurture</div></div>
+        <div class="kpi"><div class="k">Cards</div><div class="v tnum">${s.cards.length}</div><div class="d">captured today</div></div>
+      </div>
+
+      ${s.open.length ? `<div class="sec-h"><h2>Clear these while you remember them</h2><span class="count">${s.open.length}</span></div>
+        <div class="card dlist">
+          ${s.open.slice(0, 14).map(m => `<button class="dealrow" data-act="outcome" data-id="${m.id}">
+            <span class="dl-t">
+              <span class="dl-1">${UI.esc(m.company_name || 'Unnamed')}</span>
+              <span class="dl-2">${UI.esc([UI.fmtTimeStr(m.meeting_time), m.prospect_name].filter(Boolean).join(' · '))}</span>
+            </span>${I.chev}
+          </button>`).join('')}
+        </div>` : `<div class="card" style="padding:16px;text-align:center">
+          <div style="font-weight:650;font-size:14.5px">Every meeting on your name is logged.</div>
+          <div class="hint" style="margin-top:4px">That is the whole job done for today.</div>
+        </div>`}
+
+      <div class="sec-h" style="margin-top:16px"><h2>Send the day on</h2></div>
+      <pre class="digest">${UI.esc(txt)}</pre>`,
+    foot: `<button class="btn wa block" data-act="shareWrap" data-id="${d}">${I.whatsapp}Send on WhatsApp</button>
+      <div style="display:flex;gap:9px;margin-top:9px">
+        <button class="btn ghost" style="flex:1" data-act="copyWrap" data-id="${d}">${I.copy}Copy</button>
+        <button class="btn ghost" style="flex:1" data-x>Close</button>
+      </div>`,
+    onMount(b, f) { f.querySelector('[data-x]').onclick = () => UI.closeSheet(); }
+  });
+}
+
+/* ============================================================
+   THE CONSOLE — who is on, who is not, who is doing what
+   ============================================================ */
+function presence(mem) {
+  const t = mem.last_seen_at ? new Date(mem.last_seen_at).getTime() : 0;
+  if (!t) return { k: 'never', label: 'Never signed in' };
+  const mins = (Date.now() - t) / 60000;
+  if (mins < 4) return { k: 'live', label: 'On the app now' };
+  if (mins < 45) return { k: 'recent', label: 'Active ' + UI.ago(t) };
+  return { k: 'away', label: 'Last seen ' + UI.ago(t) };
+}
+
+function teamPane() {
+  const day = V.boardDay === 'day' && V.day !== 'all' ? V.day : null;
+  const mtgs = day ? S.meetings.filter(m => m.meeting_date === day) : S.meetings;
+  const rows = S.members.map(mem => {
+    const isRep = mem.role === 'rep';
+    const mine = mtgs.filter(m => (isRep ? m.rep_id : m.owner_id) === mem.user_id);
+    const acts = S.activity.filter(a => a.actor_id === mem.user_id);
+    return {
+      mem, isRep, p: presence(mem),
+      total: mine.length,
+      logged: mine.filter(isDone).length,
+      deal: mine.filter(m => m.outcome === 'deal').length,
+      cards: S.leads.filter(l => l.captured_by === mem.user_id).length,
+      voice: mine.filter(m => m.voice_note_path).length,
+      last: acts[0] || null
+    };
+  });
+  const order = { live: 0, recent: 1, away: 2, never: 3 };
+  rows.sort((a, b) => order[a.p.k] - order[b.p.k] || b.logged - a.logged || String(a.mem.short_name).localeCompare(b.mem.short_name));
+  const on = rows.filter(r => r.p.k === 'live').length;
+  const never = rows.filter(r => r.p.k === 'never');
+  const behind = rows.filter(r => r.total && r.logged < r.total);
+
+  return `
+  <div class="kpis" style="margin-bottom:14px">
+    <div class="kpi brand"><div class="k">On the app now</div><div class="v tnum">${on}</div><div class="d">of ${rows.length} on the roster</div></div>
+    <div class="kpi ${never.length ? 'bad' : 'deal'}"><div class="k">Never signed in</div><div class="v tnum">${never.length}</div><div class="d">${never.length ? never.map(r => UI.esc(r.mem.short_name)).join(', ') : 'everyone is in'}</div></div>
+    <div class="kpi hot"><div class="k">Behind on logging</div><div class="v tnum">${behind.length}</div><div class="d">${behind.reduce((s, r) => s + (r.total - r.logged), 0)} outcomes open</div></div>
+    <div class="kpi"><div class="k">Cards today</div><div class="v tnum">${S.leads.length}</div><div class="d">${mtgs.filter(m => m.voice_note_path).length} voice notes</div></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h"><h2>The floor right now</h2><span class="count">${rows.length}</span></div>
+    <div class="card tlist">
+      ${rows.map(r => `<div class="trow">
+        <span class="tav">${UI.avatar(r.mem, 'sm')}<i class="pdot ${r.p.k}"></i></span>
+        <span class="tmid">
+          <span class="t1">${UI.esc(r.mem.short_name || r.mem.full_name)}<em>${r.isRep ? 'IS rep' : UI.esc(r.mem.title || 'Leadership')}</em></span>
+          <span class="t2 ${r.p.k}">${UI.esc(r.p.label)}${r.mem.device ? ' · ' + UI.esc(r.mem.device) : ''}${r.mem.app_build ? ' · b' + UI.esc(r.mem.app_build) : ''}</span>
+          ${r.last ? `<span class="t3">${I.bolt}${UI.esc(r.last.summary || '')} · ${UI.ago(r.last.created_at)}</span>` : `<span class="t3 mut">${I.info}Nothing logged yet</span>`}
+        </span>
+        <span class="tnums">
+          <b class="tnum">${r.logged}<i>/${r.total}</i></b>
+          <em>${r.deal} deal${r.deal === 1 ? '' : 's'} · ${r.cards} card${r.cards === 1 ? '' : 's'}</em>
+        </span>
+      </div>`).join('')}
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h"><h2>Everything happening</h2><span class="count">${S.activity.length}</span></div>
+    <div class="card feed">
+      ${S.activity.length ? S.activity.slice(0, 40).map(feedRow).join('')
+        : `<div class="hint" style="padding:16px;text-align:center">Nothing yet. Every outcome, card and voice note lands here the second it is recorded.</div>`}
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:9px;margin-top:4px">
+    <button class="btn primary block" data-act="wrap" data-id="${day || UI.nowInTz().date}">${I.days}Open the day wrap</button>
+    <button class="btn ghost block" data-act="refresh">${I.refresh}Refresh the floor</button>
+  </div>`;
+}
+
 window.Views = {
   V, render, renderDayRail, eventDays, isMine, meId, liveInfo,
   openMeeting, openOutcome, openOutcomeList, openLead, openEditLead, openAddMeeting, openEditMeeting,
   openAddEvent, openSwitchEvent, doSwitchEvent, openTeam, openLinkMeeting,
-  matchMeetings, leadCard, hydrateThumbs, scoped, dayFilter, defaultDay
+  matchMeetings, leadCard, hydrateThumbs, scoped, dayFilter, defaultDay,
+  paintNudge, nudgeQueue, nudgeLater, nudgeClear, openWrap, digestText, dayStats
 };

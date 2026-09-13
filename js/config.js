@@ -1,7 +1,7 @@
 /* Vervotech Showdown — configuration + icon set */
 
 window.APP_NAME = 'Vervotech Showdown';
-window.BUILD = '42';
+window.BUILD = '43';
 window.CFG = {
   supabaseUrl: 'https://fofmpvgbeoxslpiegxql.supabase.co',
   supabaseKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZvZm1wdmdiZW94c2xwaWVneHFsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4OTE4MTksImV4cCI6MjA5MzQ2NzgxOX0.2z6pMAf4kY5sufnSiXlPjvKNnbmVqG4hiHkS-jjnwpo',
@@ -11,6 +11,15 @@ window.CFG = {
   /* a voice note is a quick thought, not a monologue, and a hard cap keeps the
      upload inside the bucket limit on a weak show-floor connection */
   voiceMaxMs: 150000,
+  /* the floor runs faster than memory does: ask about a meeting two minutes
+     after its slot ends, and never more than once every nudgeGapMin */
+  nudgeAfterMin: 2,
+  nudgeSnoozeMin: 25,
+  nudgeMaxSnoozes: 3,
+  /* event-local time the day wrap opens itself */
+  wrapAt: '18:30',
+  /* the console is a view for whoever runs the floor, not a security boundary */
+  admins: ['prashant@vervotech.com'],
   /* shown on the sign-in screen before we have a session */
   eventTag: 'Arabian Travel Market 2026 · Dubai'
 };
@@ -109,6 +118,7 @@ window.I = {
   waves: _i('<path d="M4 10v4M8 7v10M12 4.4v15.2M16 7v10M20 10v4"/>'),
   play: _i('<path d="M8.4 5.6l9.4 6.4-9.4 6.4z"/>'),
   whatsapp: _i('<path d="M20.3 11.6a8.3 8.3 0 0 1-12.2 7.3L3.7 20.3l1.4-4.3A8.3 8.3 0 1 1 20.3 11.6z"/><path d="M9.1 8.6c.5-.1.8 0 1 .5l.6 1.3c.1.3.1.5-.1.8l-.4.5c-.2.2-.2.4-.1.6.4.8 1.2 1.6 2.1 2 .2.1.4.1.6-.1l.5-.5c.2-.2.5-.3.8-.2l1.3.6c.5.2.6.5.5 1a2 2 0 0 1-2 1.4c-1.4 0-3.2-1.1-4.3-2.2-1.1-1.1-2.2-2.9-2.2-4.3a2 2 0 0 1 1.7-1.4z"/>'),
+  bell: _i('<path d="M12 3.2a5.6 5.6 0 0 1 5.6 5.6c0 4 1.4 5.4 2 6.1.2.3 0 .7-.4.7H4.8c-.4 0-.6-.4-.4-.7.6-.7 2-2.1 2-6.1A5.6 5.6 0 0 1 12 3.2z"/><path d="M10 18.6a2.1 2.1 0 0 0 4 0"/>'),
   wifiOff: _i('<path d="M3 3.6l17.4 17.4M8.4 15.4a5 5 0 0 1 5.4-.8M5.2 12.2a9.4 9.4 0 0 1 4-2.2M2.4 9a13.8 13.8 0 0 1 4-2.6M11 6.4a13.8 13.8 0 0 1 10.6 2.6M16.4 11.4c.8.4 1.5.9 2.2 1.6"/><circle cx="12" cy="18.8" r="1" fill="currentColor" stroke="none"/>'),
   info: _i('<circle cx="12" cy="12" r="8.8"/><path d="M12 11v5.2M12 7.9h.01" stroke-width="2"/>'),
   alert: _i('<path d="M10.3 3.8a2 2 0 0 1 3.4 0l7.4 13a2 2 0 0 1-1.7 3H4.6a2 2 0 0 1-1.7-3Z"/><path d="M12 9.4v4M12 16.6h.01" stroke-width="2"/>'),

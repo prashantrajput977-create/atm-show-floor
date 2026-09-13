@@ -81,6 +81,11 @@ const S = {
 };
 window.S = S;
 
+/* Whoever runs the floor gets the console. Everyone can already read every
+   row, so this decides what is worth showing, not what is allowed. */
+const isAdmin = () => !!S.me && (CFG.admins || []).includes(String(S.me.email || '').toLowerCase());
+window.isAdmin = isAdmin;
+
 const MEET_COLS = '*';
 const LEAD_COLS = '*';
 
@@ -206,6 +211,31 @@ async function attempt(fn, tries = 3) {
   throw last;
 }
 
+/* Who is actually on the app. One row per person, written at most once a
+   minute, so the console can tell "on the floor" from "never signed in". */
+let beatAt = 0;
+async function heartbeat(force = false) {
+  const uid = S.me?.user_id;
+  if (!uid || !navigator.onLine) return;
+  if (!force && Date.now() - beatAt < 60000) return;
+  beatAt = Date.now();
+  const now = new Date().toISOString();
+  const patch = { last_seen_at: now, app_build: String(window.BUILD || ''), last_tab: (window.V && V.tab) || null };
+  if (!S.me.first_seen_at) patch.first_seen_at = now;
+  patch.device = /iPhone|iPad|Android/i.test(navigator.userAgent)
+    ? (/iPad/i.test(navigator.userAgent) ? 'iPad' : /iPhone/i.test(navigator.userAgent) ? 'iPhone' : 'Android')
+    : 'Desktop';
+  Object.assign(S.me, patch);
+  const me = S.members.find(m => m.user_id === uid);
+  if (me) Object.assign(me, patch);
+  try { await SB.from('ev_members').update(patch).eq('user_id', uid); } catch (e) { beatAt = 0; }
+}
+
+async function loadRoster() {
+  const { data, error } = await SB.from('ev_members').select('*').eq('is_active', true).order('role').order('short_name');
+  if (!error && data && data.length) S.members = data;
+}
+
 async function loadEventData() {
   const id = S.eventId;
   const [m, l, a] = await Promise.all([
@@ -235,6 +265,8 @@ async function resume(force = false) {
   try {
     if (chanState !== 'SUBSCRIBED') subscribe();
     await loadEventData();
+    heartbeat();
+    if (isAdmin()) await loadRoster();
     setNet('live');
     bus.emit('data');
     saveSnapshot();
@@ -660,5 +692,5 @@ window.Store = {
   signIn, signOut, getSession, loadMe, loadAll, loadEventData, resume, switchEvent,
   updateMeeting, addMeeting, saveLead, updateLead, deleteLead, addEvent, log,
   flush, thumb, ocrCheck, ocrRemote, deleteMeeting, resetEvent, CLEAR,
-  saveMedia, clearMedia, voiceCheck, transcribe
+  saveMedia, clearMedia, voiceCheck, transcribe, heartbeat, loadRoster, isAdmin
 };

@@ -105,11 +105,58 @@ function paintSync() {
 }
 
 /* re-render clock-driven bits (live meeting, next up) every 45s */
+let timersOn = false;
 function refreshCounters() {
+  if (timersOn) return;
+  timersOn = true;
   setInterval(() => {
     if ($('#app').hidden) return;
     if (V.tab === 'today' && $('#sheet').hidden) render();
   }, 45000);
+  /* the floor clock: ask about finished meetings, and open the wrap once */
+  setInterval(floorTick, 30000);
+  setTimeout(floorTick, 2500);
+  Store.heartbeat(true);
+  setInterval(() => { if (!document.hidden) Store.heartbeat(); }, 60000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { Store.heartbeat(); floorTick(); } });
+}
+
+/* Notifications are a bonus, never the mechanism. The card in the app is the
+   real nudge, so nothing breaks when permission is denied or unsupported. */
+let notified = {};
+function pushNudge(m) {
+  try {
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    if (!document.hidden || notified[m.id]) return;
+    notified[m.id] = 1;
+    new Notification(`How did ${m.company_name} go?`, {
+      body: 'That meeting has finished. Log it while it is fresh.',
+      tag: 'nudge-' + m.id, icon: 'icons/icon-192.png'
+    });
+  } catch (e) {}
+}
+
+function floorTick() {
+  if ($('#app').hidden || !S.ready) return;
+  Views.paintNudge();
+  const q = Views.nudgeQueue();
+  if (q.length) pushNudge(q[0]);
+  maybeWrap();
+}
+
+/* One automatic wrap per day, at the hour the stand starts emptying. */
+function maybeWrap() {
+  const now = UI.nowInTz();
+  const days = Views.eventDays();
+  if (!days.includes(now.date)) return;
+  if (now.min < UI.toMin(CFG.wrapAt || '18:30')) return;
+  const key = 'sf_wrap_' + now.date;
+  try { if (localStorage.getItem(key)) return; } catch (e) { return; }
+  const mine = S.meetings.filter(m => Views.isMine(m) && m.meeting_date === now.date);
+  if (!mine.length && !Store.isAdmin()) return;
+  if (!$('#sheet').hidden) return;
+  try { localStorage.setItem(key, '1'); } catch (e) {}
+  Views.openWrap(now.date, true);
 }
 
 Store.bus.on('net', paintSync);
@@ -193,6 +240,12 @@ $('#main').addEventListener('click', e => {
   if (wk) { V.wkScope = wk.dataset.wk; render(); UI.buzz(6); return; }
   const bd = e.target.closest('[data-bd]');
   if (bd) { V.boardDay = bd.dataset.bd; render(); UI.buzz(6); return; }
+  const bp = e.target.closest('[data-bp]');
+  if (bp) {
+    V.boardPane = bp.dataset.bp;
+    if (V.boardPane === 'team') Store.loadRoster().then(render);
+    render(); UI.buzz(6); return;
+  }
 });
 
 const runQ = UI.debounce(v => {
@@ -354,6 +407,55 @@ document.addEventListener('click', async e => {
     scanFor: () => { pendingScanMeeting = id; closeSheet(); openCamera(); },
     clearQ: () => { V.q = ''; render(); },
     copy: () => UI.copy(el.dataset.v, 'Copied'),
+    nudgeMet: async () => {
+      const m = S.meetings.find(x => x.id === id);
+      if (!m) return;
+      Views.nudgeClear(id);
+      await Store.updateMeeting(id, {
+        status: 'met', met_at: m.met_at || new Date().toISOString(), updated_at: new Date().toISOString()
+      }, { activity: { kind: 'status_met', summary: `marked ${m.company_name} turned up` } });
+      UI.buzz(14);
+      Views.paintNudge();
+      Views.openOutcome(id, 2);
+      render();
+    },
+    nudgeNo: async () => {
+      const m = S.meetings.find(x => x.id === id);
+      if (!m) return;
+      const prev = { status: m.status, outcome: m.outcome, met_at: m.met_at };
+      Views.nudgeClear(id);
+      await Store.updateMeeting(id, {
+        status: 'no_show', outcome: 'no_show', met_at: null, updated_at: new Date().toISOString()
+      }, { activity: { kind: 'status_no_show', summary: `marked ${m.company_name} a no show` } });
+      UI.buzz(14);
+      Views.paintNudge(); render();
+      toast(`No show on ${m.company_name}`, {
+        kind: 'ok', action: 'Undo',
+        onAction: () => Store.updateMeeting(id, { ...prev, updated_at: new Date().toISOString() })
+          .then(() => { toast('Reverted'); Views.paintNudge(); render(); })
+      });
+    },
+    nudgeLater: () => {
+      const mins = Views.nudgeLater(id);
+      UI.buzz(6);
+      Views.paintNudge();
+      toast(mins >= 120 ? 'Parked. It is waiting in the day wrap.' : `Back in ${mins} minutes`, { icon: 'clock', ms: 2600 });
+    },
+    wrap: () => Views.openWrap(id || UI.nowInTz().date),
+    console: () => { V.tab = 'board'; V.boardPane = 'team'; Store.loadRoster().then(render); render(); renderDayRail(); window.scrollTo({ top: 0, behavior: 'smooth' }); },
+    shareWrap: () => {
+      const txt = Views.digestText(id, Store.isAdmin() || S.me?.role === 'leader');
+      window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank', 'noopener');
+    },
+    copyWrap: () => UI.copy(Views.digestText(id, Store.isAdmin() || S.me?.role === 'leader'), 'Day copied'),
+    remindMe: async () => {
+      try {
+        if (!('Notification' in window)) return toast('This browser has no notifications. The in-app card still works.', { kind: 'warn' });
+        const p = await Notification.requestPermission();
+        toast(p === 'granted' ? 'Reminders on' : 'Reminders stay off. The in-app card still works.', { kind: p === 'granted' ? 'ok' : 'warn' });
+        render();
+      } catch (e) { toast('Could not switch reminders on', { kind: 'bad' }); }
+    },
     install: doInstall,
     refresh: () => { toast('Refreshing'); Store.loadAll({ fromCache: false }).then(() => { renderDayRail(); render(); }); },
     export: doExport,

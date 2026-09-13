@@ -139,6 +139,7 @@ function openSheet({ title, sub, body, foot, onMount, onClose }) {
   requestAnimationFrame(() => { sh.classList.add('on'); sc.classList.add('on'); });
   document.body.style.overflow = 'hidden';
   $('#sheetBody').scrollTop = 0;
+  try { window.Views && Views.paintNudge(); } catch (e) {}
   onMount && onMount($('#sheetBody'), $('#sheetFoot'));
 }
 function closeSheet() {
@@ -151,6 +152,7 @@ function closeSheet() {
     if (!sh.classList.contains('on')) { sh.hidden = true; $('#sheetBody').innerHTML = ''; }
   }, 300);
   top?.onClose && top.onClose();
+  try { window.Views && Views.paintNudge(); } catch (e) {}
 }
 
 /* confirm inside a sheet */

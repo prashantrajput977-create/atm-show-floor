@@ -1163,6 +1163,105 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
 /* ============================================================
    TOAST / UNDO
    ============================================================ */
+/* ---------- the nudge: docked above the tab bar, never over a sheet ---------- */
+#nudge {
+  position: fixed; left: 0; right: 0; z-index: 88;
+  bottom: calc(var(--bar-h) + var(--sab) + 10px);
+  padding: 0 12px; pointer-events: none;
+  display: flex; justify-content: center;
+  opacity: 0; transform: translateY(14px);
+  transition: opacity .22s ease, transform .28s cubic-bezier(.22, 1, .36, 1);
+}
+#nudge.on { opacity: 1; transform: none }
+.nudge {
+  pointer-events: auto; width: 100%; max-width: 460px;
+  background: var(--surf); border: 1px solid var(--line-2);
+  border-radius: var(--r-lg); padding: 13px 14px 12px;
+  box-shadow: var(--sh-3);
+}
+.nd-h {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--ff-mono); font-size: 10.5px; font-weight: 700;
+  letter-spacing: .07em; text-transform: uppercase; color: var(--tx-3);
+}
+.nd-dot {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--hot);
+  box-shadow: 0 0 0 3px rgba(181, 115, 11, .16); flex: none;
+}
+.nd-x {
+  margin-left: auto; border: 0; background: none; padding: 2px 0 2px 10px;
+  font: inherit; letter-spacing: .07em; color: var(--tx-3); cursor: pointer;
+}
+.nd-x:hover { color: var(--tx) }
+.nudge h4 {
+  margin: 7px 0 1px; font-size: 16px; font-weight: 700; letter-spacing: -.022em;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.nd-s {
+  font-size: 12px; color: var(--tx-2);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.nd-b { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 11px }
+.nd-b .btn { margin: 0; white-space: nowrap }
+.nd-more {
+  margin-top: 8px; font-size: 11px; font-weight: 600; color: var(--tx-3); text-align: center;
+}
+@media (min-width: 1000px) { #nudge { left: 268px; bottom: 18px } }
+
+/* ---------- the day digest ---------- */
+.digest {
+  margin: 0; padding: 13px 14px; border-radius: var(--r);
+  background: var(--surf-3); border: 1px solid var(--line);
+  font-family: var(--ff-mono); font-size: 11.5px; line-height: 1.65;
+  color: var(--tx-2); white-space: pre-wrap; word-break: break-word;
+  max-height: 240px; overflow: auto;
+}
+.btn.wa { background: #1FA855; border-color: #178A45; color: #fff }
+.btn.wa:hover { background: #178A45; color: #fff }
+
+/* ---------- the floor console ---------- */
+.tlist { padding: 2px 0 }
+.trow {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 11px; align-items: center; padding: 11px 13px;
+  border-bottom: 1px solid var(--line);
+}
+.trow:last-child { border-bottom: 0 }
+.tav { position: relative; display: block; flex: none }
+.tav .avatar { width: 34px; height: 34px; font-size: 12.5px; border-radius: 11px }
+.pdot {
+  position: absolute; right: -1px; bottom: -1px;
+  width: 10px; height: 10px; border-radius: 50%;
+  border: 2px solid var(--surf); background: var(--line-2);
+}
+.pdot.live { background: var(--deal) }
+.pdot.recent { background: var(--hot) }
+.pdot.away { background: var(--line-2) }
+.pdot.never { background: var(--dead) }
+.tmid { min-width: 0; display: flex; flex-direction: column; gap: 2px }
+.t1 {
+  font-size: 14px; font-weight: 650; letter-spacing: -.015em;
+  display: flex; align-items: baseline; gap: 6px; min-width: 0;
+}
+.t1 em {
+  font-style: normal; font-size: 10px; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--tx-3); white-space: nowrap;
+}
+.t2 { font-size: 11.5px; color: var(--tx-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.t2.live { color: var(--deal); font-weight: 650 }
+.t2.never { color: var(--dead); font-weight: 650 }
+.t3 {
+  display: flex; align-items: center; gap: 5px; margin-top: 1px;
+  font-size: 11.5px; color: var(--tx-2);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.t3 svg { width: 12px; height: 12px; flex: none; color: var(--tx-3) }
+.t3.mut { color: var(--tx-3) }
+.tnums { text-align: right; flex: none }
+.tnums b { display: block; font-family: var(--ff-mono); font-size: 16px; font-weight: 700; letter-spacing: -.03em }
+.tnums b i { font-style: normal; font-size: 11px; color: var(--tx-3) }
+.tnums em { font-style: normal; font-size: 10.5px; color: var(--tx-3); font-weight: 600; white-space: nowrap }
+
 .toasts {
   position: fixed; left: 0; right: 0; z-index: 90;
   bottom: calc(var(--bar-h) + var(--sab) + 12px);
