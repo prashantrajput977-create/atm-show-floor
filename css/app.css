@@ -1324,3 +1324,35 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
 .ptr.ready .ptr-s { border-color: var(--brand-dim); border-top-color: var(--brand) }
 .ptr.spin .ptr-s { border-color: var(--brand-dim); border-top-color: var(--brand); animation: spin .62s linear infinite }
 @media (min-width: 1000px) { .ptr { display: none } }
+
+/* ---------------- attendance strip ---------------- */
+.attrow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px }
+.attrow button {
+  min-height: 62px; padding: 9px 4px 8px; border-radius: var(--r);
+  background: var(--surf); border: 1.5px solid var(--line-2); box-shadow: var(--sh-ctl);
+  display: grid; justify-items: center; align-content: center; gap: 6px;
+  font-size: 10.5px; font-weight: 700; letter-spacing: -.005em; color: var(--tx-2);
+  transition: border-color .15s, background .15s, box-shadow .15s, transform .08s, color .15s;
+}
+.attrow button svg { width: 17px; height: 17px }
+.attrow button span { line-height: 1.1; text-align: center }
+.attrow button:hover { border-color: var(--ctl-edge); box-shadow: var(--sh-ctl-h) }
+.attrow button:active { transform: translateY(1px); box-shadow: none }
+.attrow button:focus-visible { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-dim) }
+.attrow button[data-v="met"] svg { color: var(--deal) }
+.attrow button[aria-pressed="true"] { color: var(--tx); border-color: var(--tx); box-shadow: 0 0 0 1px var(--tx) inset }
+.attrow button[aria-pressed="true"][data-v="met"] { border-color: var(--deal); background: var(--deal-dim); box-shadow: 0 0 0 1px var(--deal) inset }
+.attrow button[aria-pressed="true"][data-v="cancelled"],
+.attrow button[aria-pressed="true"][data-v="no_show"] { background: var(--surf-3) }
+
+/* step marker in the outcome sheet */
+.stepline {
+  display: flex; align-items: center; gap: 9px; margin: 0 0 14px;
+  font-family: var(--ff-mono); font-size: 9.5px; font-weight: 700;
+  letter-spacing: .13em; text-transform: uppercase; color: var(--tx-3);
+}
+.stepline span { display: inline-flex; align-items: center; gap: 6px }
+.stepline span + span::before { content: ''; width: 14px; height: 1px; background: var(--line-2) }
+.stepline .on { color: var(--tx) }
+.stepline .done { color: var(--brand); cursor: pointer }
+.stepline .done:hover { text-decoration: underline }

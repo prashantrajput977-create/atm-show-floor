@@ -258,6 +258,29 @@ document.addEventListener('click', async e => {
     refresh: () => { toast('Refreshing'); Store.loadAll({ fromCache: false }).then(() => { renderDayRail(); render(); }); },
     export: doExport,
     signout: doSignout,
+    attend: async () => {
+      const m = S.meetings.find(x => x.id === id);
+      if (!m) return;
+      const v = el.dataset.v;
+      const prev = { status: m.status, outcome: m.outcome, met_at: m.met_at };
+      const label = { met: 'Turned up', no_show: 'No show', rescheduled: 'Rescheduled', cancelled: 'Cancelled' }[v] || v;
+      await Store.updateMeeting(id, {
+        status: v,
+        /* attendance and outcome must not contradict each other */
+        outcome: v === 'no_show' ? 'no_show' : (v === 'met' ? m.outcome : null),
+        met_at: v === 'met' ? (m.met_at || new Date().toISOString()) : null,
+        updated_at: new Date().toISOString()
+      }, { activity: { kind: 'status_' + v, summary: `marked ${m.company_name} ${label.toLowerCase()}` } });
+      UI.buzz(14);
+      if (v === 'met') { Views.openOutcome(id); render(); return; }
+      closeSheet();
+      toast(`${label} on ${m.company_name}`, {
+        kind: 'ok', action: 'Undo',
+        onAction: () => Store.updateMeeting(id, { ...prev, updated_at: new Date().toISOString() })
+          .then(() => { toast('Reverted'); render(); })
+      });
+      render();
+    },
     status: async () => {
       const m = S.meetings.find(x => x.id === id);
       if (!m) return;

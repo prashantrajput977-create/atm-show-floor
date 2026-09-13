@@ -57,7 +57,17 @@ function liveInfo(m) {
   if (now.min >= st && now.min < en) return 1;
   return 0;
 }
-function isDone(m) { return !!m.outcome || ['no_show', 'cancelled'].includes(m.status); }
+/* Two steps on purpose: did they turn up, then how did it go. Asking for a
+   commercial call on a meeting that never happened was the old mistake. */
+const ATTEND = [
+  { v: 'met',         label: 'They turned up',  short: 'Turned up',   desc: 'Sat down and had the conversation', icon: 'handshake' },
+  { v: 'no_show',     label: 'No show',         short: 'No show',     desc: 'Booked but never arrived',          icon: 'ban' },
+  { v: 'rescheduled', label: 'Rescheduled',     short: 'Rescheduled', desc: 'Moving to another slot',            icon: 'clock' },
+  { v: 'cancelled',   label: 'Cancelled',       short: 'Cancelled',   desc: 'Called off before the show',        icon: 'x' }
+];
+const CALLS = OUTCOMES.filter(o => o.v !== 'no_show');
+
+function isDone(m) { return !!m.outcome || ['no_show', 'rescheduled', 'cancelled'].includes(m.status); }
 
 function leadsFor(meetingId) { return S.leads.filter(l => l.meeting_id === meetingId); }
 
@@ -120,7 +130,7 @@ function viewToday() {
   const now = UI.nowInTz();
   const next = sorted.find(m => m.meeting_date === now.date && UI.toMin(m.meeting_time) > now.min && !isDone(m));
 
-  const logged = sorted.filter(m => m.outcome).length;
+  const logged = sorted.filter(isDone).length;
   const c = { deal: 0, hot: 0, nurture: 0, bad: 0 };
   sorted.forEach(m => {
     if (m.outcome === 'deal') c.deal++;
@@ -455,7 +465,7 @@ function viewBoard() {
     const cnt = g => mine.filter(m => m.outcome && OUT_MAP[m.outcome]?.grp === g).length;
     return {
       mem, isRep, total: mine.length,
-      logged: mine.filter(m => m.outcome).length,
+      logged: mine.filter(isDone).length,
       deal: cnt('created'), open: cnt('open'), missed: cnt('missed'), bad: cnt('dropped'),
       cards: leads.filter(l => l.captured_by === mem.user_id).length,
       value: mine.filter(m => m.outcome === 'deal').reduce((s, m) => s + (Number(m.deal_value_usd) || 0), 0)
@@ -736,10 +746,10 @@ function feedRow(a) {
 function viewMe() {
   const me = S.me || {};
   const mine = S.meetings.filter(isMine);
-  const logged = mine.filter(m => m.outcome);
+  const logged = mine.filter(isDone);
   const myLeads = S.leads.filter(l => l.captured_by === meId());
   const ev = UI.activeEvent();
-  const byDay = eventDays().map(d => ({ d, n: mine.filter(m => m.meeting_date === d).length, l: mine.filter(m => m.meeting_date === d && m.outcome).length }));
+  const byDay = eventDays().map(d => ({ d, n: mine.filter(m => m.meeting_date === d).length, l: mine.filter(m => m.meeting_date === d && isDone(m)).length }));
   const canInstall = !!window.__installPrompt;
 
   return `
@@ -835,8 +845,15 @@ function openMeeting(id) {
       ${liveInfo(m) ? '<span class="tag hot">Live now</span>' : ''}
     </div>
 
-    <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:16px">
-      <button class="btn primary block" data-act="outcome" data-id="${m.id}">${I.check}${m.outcome ? 'Update the call' : 'Log the outcome'}</button>
+    <div class="sec-h" style="margin-top:0"><h2>Did they turn up?</h2></div>
+    <div class="attrow">
+      ${ATTEND.map(a => `<button data-act="attend" data-id="${m.id}" data-v="${a.v}"
+          aria-pressed="${m.status === a.v}">${I[a.icon] || I.info}<span>${a.short}</span></button>`).join('')}
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:9px;margin:14px 0 16px">
+      <button class="btn primary block" data-act="outcome" data-id="${m.id}"
+        ${m.status === 'rescheduled' || m.status === 'cancelled' ? 'disabled' : ''}>${I.check}${m.outcome ? 'Update the outcome' : 'Log the outcome'}</button>
       <div style="display:flex;gap:9px">
         <button class="btn" style="flex:1" data-act="scanFor" data-id="${m.id}">${I.card}Scan card</button>
         <button class="btn" style="flex:1" data-act="editMeeting" data-id="${m.id}">${I.edit}Edit</button>
@@ -864,95 +881,155 @@ function openMeeting(id) {
     <div class="sec-h"><h2>Cards from this meeting</h2><span class="count">${ls.length}</span></div>
     ${ls.length ? ls.map(leadCard).join('') : `<div class="hint" style="padding:4px 2px 12px">No card captured yet.</div>`}
 
-    <div class="sec-h" style="margin-top:6px"><h2>Change status</h2></div>
-    <div class="segs">
-      ${STATUSES.map(s => `<button data-act="status" data-id="${m.id}" data-v="${s.v}" aria-selected="${m.status === s.v}">${s.label}</button>`).join('')}
-    </div>`;
+`;
 
   UI.openSheet({ title: m.company_name, sub: [m.prospect_name, m.geo_region].filter(Boolean).join(' · ') || UI.fmtDate(m.meeting_date), body });
   hydrateThumbs();
 }
 
+
 function openOutcome(id) {
   const m = S.meetings.find(x => x.id === id);
   if (!m) return;
-  let pick = m.outcome || null;
 
-  const body = `
-    <div class="outs" id="outGrid">
-      ${OUTCOMES.map(o => `<button class="outbtn" data-v="${o.v}" aria-pressed="${pick === o.v}">
+  /* an already-logged meeting reopens on whichever step it belongs to */
+  let att = m.outcome === 'no_show' ? 'no_show'
+    : (m.outcome ? 'met' : (['no_show', 'rescheduled', 'cancelled', 'met'].includes(m.status) ? m.status : null));
+  let pick = m.outcome && m.outcome !== 'no_show' ? m.outcome : null;
+  let step = (att === 'met' && m.outcome) ? 2 : 1;
+  const draft = {
+    val: m.deal_value_usd != null ? String(m.deal_value_usd) : '',
+    next: m.next_step || '', due: m.next_step_due || '', notes: m.outcome_notes || ''
+  };
+
+  const stepOne = () => `
+    <div class="stepline"><span class="on">1 Attendance</span><span>2 Outcome</span></div>
+    <div class="outs">
+      ${ATTEND.map(a => `<button class="outbtn att" data-a="${a.v}" aria-pressed="${att === a.v}">
+        <span class="oi">${I[a.icon] || I.info}</span>
+        <span class="ot">${a.label}</span>
+        <span class="od">${a.desc}</span>
+      </button>`).join('')}
+    </div>
+    ${att && att !== 'met' ? `<div class="field" style="margin-top:16px">
+      <label for="o_notes">Anything worth noting</label>
+      <textarea class="input" id="o_notes" placeholder="Who told you, whether it is worth rebooking.">${UI.esc(draft.notes)}</textarea>
+    </div>` : ''}`;
+
+  const stepTwo = () => `
+    <div class="stepline"><span class="done" data-back>1 Attendance</span><span class="on">2 Outcome</span></div>
+    <div class="outs">
+      ${CALLS.map(o => `<button class="outbtn" data-v="${o.v}" aria-pressed="${pick === o.v}">
         <span class="oi">${I[o.icon] || I.bolt}</span>
         <span class="ot">${o.label}</span>
         <span class="od">${o.desc}</span>
       </button>`).join('')}
     </div>
-    <div id="outExtra" style="margin-top:16px">
+    <div style="margin-top:16px">
       <div class="field" id="valWrap" ${OUT_VALUED.includes(pick) ? '' : 'hidden'}>
         <label for="o_val">Deal value if it lands (USD)</label>
         <input class="input mono" id="o_val" type="number" inputmode="numeric" min="0" step="1000"
-               placeholder="50000" value="${m.deal_value_usd != null ? UI.esc(m.deal_value_usd) : ''}">
+               placeholder="50000" value="${UI.esc(draft.val)}">
       </div>
       <div class="field">
         <label for="o_next">Next step</label>
-        <input class="input" id="o_next" placeholder="Send mapping sample, follow up Monday" value="${UI.esc(m.next_step || '')}">
+        <input class="input" id="o_next" placeholder="Send mapping sample, follow up Monday" value="${UI.esc(draft.next)}">
       </div>
       <div class="field">
         <label for="o_due">Follow up by</label>
-        <input class="input mono" id="o_due" type="date" value="${UI.esc(m.next_step_due || '')}">
+        <input class="input mono" id="o_due" type="date" value="${UI.esc(draft.due)}">
       </div>
       <div class="field">
         <label for="o_notes">What actually happened</label>
-        <textarea class="input" id="o_notes" placeholder="Who was in the room, what they run today, what they pushed back on.">${UI.esc(m.outcome_notes || '')}</textarea>
+        <textarea class="input" id="o_notes" placeholder="Who was in the room, what they run today, what they pushed back on.">${UI.esc(draft.notes)}</textarea>
       </div>
     </div>`;
 
   UI.openSheet({
-    title: m.outcome ? 'Update the call' : 'How did it go?',
+    title: 'Did they turn up?',
     sub: m.company_name,
-    body,
-    foot: `<button class="btn ghost" data-x>Cancel</button><button class="btn primary" data-save disabled>Save outcome</button>`,
+    body: stepOne(),
+    foot: `<button class="btn ghost" data-x>Cancel</button><button class="btn primary" data-go disabled>Continue</button>`,
     onMount(b, f) {
-      const save = f.querySelector('[data-save]');
-      save.disabled = !pick;
-      b.querySelectorAll('.outbtn').forEach(btn => {
-        btn.onclick = () => {
-          pick = btn.dataset.v;
-          b.querySelectorAll('.outbtn').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.v === pick)));
-          b.querySelector('#valWrap').hidden = !OUT_VALUED.includes(pick);
-          save.disabled = false;
-          UI.buzz();
+      const keep = () => {
+        const g = k => b.querySelector(k);
+        if (g('#o_val')) draft.val = g('#o_val').value;
+        if (g('#o_next')) draft.next = g('#o_next').value;
+        if (g('#o_due')) draft.due = g('#o_due').value;
+        if (g('#o_notes')) draft.notes = g('#o_notes').value;
+      };
+
+      const paint = () => {
+        b.innerHTML = step === 1 ? stepOne() : stepTwo();
+        const t = UI.$('#sheetTitle'); if (t) t.textContent = step === 1 ? 'Did they turn up?' : 'How did it go?';
+        b.scrollTop = 0;
+        bind();
+      };
+
+      const bind = () => {
+        const go = f.querySelector('[data-go]');
+        if (step === 1) {
+          go.textContent = att === 'met' ? 'Continue' : 'Save';
+          go.disabled = !att;
+          b.querySelectorAll('.outbtn.att').forEach(btn => {
+            btn.onclick = () => { keep(); att = btn.dataset.a; UI.buzz(); paint(); };
+          });
+        } else {
+          go.textContent = 'Save outcome';
+          go.disabled = !pick;
+          const back = b.querySelector('[data-back]');
+          if (back) back.onclick = () => { keep(); step = 1; paint(); };
+          b.querySelectorAll('.outbtn[data-v]').forEach(btn => {
+            btn.onclick = () => {
+              pick = btn.dataset.v;
+              b.querySelectorAll('.outbtn[data-v]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.v === pick)));
+              b.querySelector('#valWrap').hidden = !OUT_VALUED.includes(pick);
+              go.disabled = false;
+              UI.buzz();
+            };
+          });
+        }
+        go.onclick = () => {
+          keep();
+          if (step === 1 && att === 'met') { step = 2; paint(); return; }
+          commit();
         };
-      });
-      f.querySelector('[data-x]').onclick = () => UI.closeSheet();
-      save.onclick = async () => {
+      };
+
+      const commit = async () => {
         const prev = { outcome: m.outcome, status: m.status, deal_value_usd: m.deal_value_usd, next_step: m.next_step, next_step_due: m.next_step_due, outcome_notes: m.outcome_notes, met_at: m.met_at };
-        const val = b.querySelector('#o_val').value;
+        const met = att === 'met';
+        const out = met ? pick : (att === 'no_show' ? 'no_show' : null);
         const values = {
-          outcome: pick,
-          status: pick === 'no_show' ? 'no_show' : 'met',
-          deal_value_usd: OUT_VALUED.includes(pick) && val !== '' ? Number(val) : null,
-          next_step: b.querySelector('#o_next').value.trim() || null,
-          next_step_due: b.querySelector('#o_due').value || null,
-          outcome_notes: b.querySelector('#o_notes').value.trim() || null,
-          met_at: pick === 'no_show' ? null : (m.met_at || new Date().toISOString()),
+          status: att,
+          outcome: out,
+          deal_value_usd: met && OUT_VALUED.includes(pick) && draft.val !== '' ? Number(draft.val) : null,
+          next_step: met ? (draft.next.trim() || null) : null,
+          next_step_due: met ? (draft.due || null) : null,
+          outcome_notes: draft.notes.trim() || null,
+          met_at: met ? (m.met_at || new Date().toISOString()) : null,
           updated_at: new Date().toISOString()
         };
+        const label = met ? OUT_MAP[pick].label : (ATTEND.find(a => a.v === att) || {}).label;
         UI.closeSheet();
         await Store.updateMeeting(m.id, values, {
           activity: {
-            kind: 'outcome_' + pick,
-            summary: `called ${OUT_MAP[pick].label.toLowerCase()} on ${m.company_name}`,
-            payload: { outcome: pick, value: values.deal_value_usd }
+            kind: met ? 'outcome_' + pick : 'status_' + att,
+            summary: `${met ? 'logged ' + OUT_MAP[pick].label.toLowerCase() : label.toLowerCase()} on ${m.company_name}`,
+            payload: { outcome: out, status: att, value: values.deal_value_usd }
           }
         });
         UI.buzz(18);
-        UI.toast(`${OUT_MAP[pick].label} logged on ${m.company_name}`, {
-          kind: pick === 'deal' ? 'ok' : '', action: 'Undo',
+        UI.toast(`${label} logged on ${m.company_name}`, {
+          kind: pick === 'deal' && met ? 'ok' : '', action: 'Undo',
           onAction: () => Store.updateMeeting(m.id, { ...prev, updated_at: new Date().toISOString() })
-            .then(() => UI.toast('Reverted'))
+            .then(() => { UI.toast('Reverted'); render(); })
         });
         render();
       };
+
+      f.querySelector('[data-x]').onclick = () => UI.closeSheet();
+      if (step === 2) paint(); else bind();
     }
   });
 }
