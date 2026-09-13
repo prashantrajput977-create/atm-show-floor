@@ -1058,6 +1058,12 @@ function openLead(id) {
       ${l._dirty || l.synced === false ? '<span class="tag hot">Queued</span>' : ''}
     </div>
 
+    <div class="sec-h" style="margin-top:0"><h2>Outcome</h2></div>
+    <div class="attrow six" style="margin-bottom:16px">
+      ${CALLS.map(o => `<button data-act="rate" data-id="${l.id}" data-v="${o.v}"
+        aria-pressed="${l.interest === o.v}">${I[o.icon] || I.bolt}<span>${o.short}</span></button>`).join('')}
+    </div>
+
     <div style="display:flex;gap:9px;margin-bottom:16px">
       ${l.email ? `<a class="btn primary" style="flex:1" href="mailto:${UI.esc(l.email)}">${I.mail}Email</a>` : ''}
       ${l.phone ? `<a class="btn" style="flex:1" href="tel:${UI.esc(String(l.phone).replace(/\s/g, ''))}">${I.phone}Call</a>` : ''}
@@ -1080,10 +1086,6 @@ function openLead(id) {
       ${row('user', 'Captured by', `${UI.esc(who?.short_name || l.captured_by_name || '—')} · ${UI.esc(UI.ago(l.created_at))}`)}
     </div>
 
-    <div class="sec-h"><h2>Rate the interest</h2></div>
-    <div class="segs" style="margin-bottom:16px">
-      ${OUTCOMES.map(o => `<button data-act="rate" data-id="${l.id}" data-v="${o.v}" aria-selected="${l.interest === o.v}">${o.label}</button>`).join('')}
-    </div>
 
     ${!l.meeting_id ? `<button class="btn ghost block" data-act="linkMeeting" data-id="${l.id}" style="margin-bottom:10px">${I.link}Attach to a meeting</button>` : ''}
     <button class="btn danger block" data-act="delLead" data-id="${l.id}">${I.trash}Delete this contact</button>`;
@@ -1100,6 +1102,29 @@ const F = (id, label, value = '', attrs = '', hint = '') => `<div class="field">
 const TA = (id, label, value = '', ph = '') => `<div class="field">
   <label for="${id}">${UI.esc(label)}</label>
   <textarea class="input" id="${id}" placeholder="${UI.esc(ph)}">${UI.esc(value)}</textarea></div>`;
+/* one outcome picker, used by the walk-in form and the contact form */
+const OUTPICK = (id, label, selected, list = CALLS) => `<div class="field">
+  <label>${UI.esc(label)}</label>
+  <div class="outs" id="${id}">
+    ${list.map(o => `<button type="button" class="outbtn" data-v="${o.v}" aria-pressed="${selected === o.v}">
+      <span class="oi">${I[o.icon] || I.bolt}</span>
+      <span class="ot">${o.label}</span><span class="od">${o.desc}</span></button>`).join('')}
+  </div></div>`;
+
+/* wires an OUTPICK and reports the current value */
+const bindPick = (b, id, init = null) => {
+  let v = init;
+  const g = b.querySelector('#' + id);
+  g.querySelectorAll('.outbtn').forEach(btn => {
+    btn.onclick = () => {
+      v = v === btn.dataset.v ? null : btn.dataset.v;
+      g.querySelectorAll('.outbtn').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.v === v)));
+      UI.buzz();
+    };
+  });
+  return () => v;
+};
+
 const SEL = (id, label, value, opts, blank = '—') => `<div class="field">
   <label for="${id}">${UI.esc(label)}</label>
   <select class="sel" id="${id}">
@@ -1123,6 +1148,7 @@ function openEditLead(id) {
     ${F('e_li', 'LinkedIn', l.linkedin, 'autocapitalize="none" spellcheck="false"')}
     ${SEL('e_region', 'Region', l.geo_region, REGIONS)}
     ${F('e_addr', 'Address', l.address)}
+    ${OUTPICK('e_out', 'Outcome', l.interest)}
     ${TA('e_notes', 'Notes', l.notes, 'What they run today, what they need, who decides.')}
     <div class="grid2">${F('e_next', 'Next step', l.next_step)}${F('e_due', 'Follow up by', l.next_step_due, 'type="date" class="input mono"')}</div>`;
 
@@ -1130,11 +1156,14 @@ function openEditLead(id) {
     title: 'Edit contact', sub: l.full_name || l.company || '', body,
     foot: `<button class="btn ghost" data-x>Cancel</button><button class="btn primary" data-save>Save</button>`,
     onMount(b, f) {
+      const getOut = bindPick(b, 'e_out', l.interest);
       f.querySelector('[data-x]').onclick = () => UI.closeSheet();
       f.querySelector('[data-save]').onclick = async () => {
         const g = s => b.querySelector(s).value.trim() || null;
+        const out = getOut();
         UI.closeSheet();
         await Store.updateLead(l.id, {
+          interest: out,
           full_name: g('#e_name'), designation: g('#e_title'), company: g('#e_co'),
           email: (g('#e_email') || '').toLowerCase() || null, phone: g('#e_phone'), phone_2: g('#e_phone2'),
           website: g('#e_web'), linkedin: g('#e_li'), geo_region: g('#e_region'),
@@ -1171,12 +1200,14 @@ function openAddMeeting(prefill = {}) {
     ${SEL('m_owner', 'Owner on our side', S.me?.user_id, S.members.map(x => ({ v: x.user_id, label: x.short_name })), 'Unassigned')}
     ${SEL('m_rep', 'Inside sales support', prefill.rep_id || '', S.members.filter(x => x.role === 'rep').map(x => ({ v: x.user_id, label: x.short_name })), 'None')}
     ${F('m_loc', 'Where', prefill.location || '', 'placeholder="Our stand, their stand, lounge"')}
+    ${OUTPICK('m_out', 'How did it go?', null)}
     ${TA('m_notes', 'Notes', '', 'Context you want to remember.')}`;
 
   UI.openSheet({
     title: 'Add a walk-in', sub: 'Anyone you picked up on the floor', body,
     foot: `<button class="btn ghost" data-x>Cancel</button><button class="btn primary" data-save>Add meeting</button>`,
     onMount(b, f) {
+      const getOut = bindPick(b, 'm_out');
       f.querySelector('[data-x]').onclick = () => UI.closeSheet();
       f.querySelector('[data-save]').onclick = async () => {
         const g = s => b.querySelector(s).value.trim() || null;
@@ -1192,9 +1223,12 @@ function openAddMeeting(prefill = {}) {
           owner_id: ownerId, owner_name: UI.memberById(ownerId)?.short_name || null,
           rep_id: repId, rep_name: UI.memberById(repId)?.short_name || null,
           location: g('#m_loc'), comments: g('#m_notes'),
-          source: 'walkin', status: 'met', duration_min: 30
+          source: 'walkin', status: 'met', duration_min: 30,
+          outcome: getOut(), met_at: new Date().toISOString()
         });
-        UI.toast(`${co} added`, { kind: 'ok', action: 'Log outcome', onAction: () => openOutcome(row.id) });
+        UI.toast(`${co} added`, getOut()
+          ? { kind: 'ok', action: 'Open', onAction: () => openMeeting(row.id) }
+          : { kind: 'ok', action: 'Log outcome', onAction: () => openOutcome(row.id, 2) });
         render(); renderDayRail();
       };
     }

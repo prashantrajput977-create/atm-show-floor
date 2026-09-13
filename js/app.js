@@ -293,7 +293,7 @@ document.addEventListener('click', async e => {
     },
     rate: async () => {
       await Store.updateLead(id, { interest: el.dataset.v, updated_at: new Date().toISOString() });
-      el.parentElement.querySelectorAll('button').forEach(b => b.setAttribute('aria-selected', String(b === el)));
+      el.parentElement.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b === el)));
       toast(`Rated ${OUT_MAP[el.dataset.v].label.toLowerCase()}`, { kind: 'ok' });
       render();
     },

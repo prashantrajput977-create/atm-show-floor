@@ -1356,3 +1356,18 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
 .stepline .on { color: var(--tx) }
 .stepline .done { color: var(--brand); cursor: pointer }
 .stepline .done:hover { text-decoration: underline }
+
+/* six outcomes read better in two rows of three */
+.attrow.six { grid-template-columns: repeat(3, 1fr) }
+.attrow.six button[data-v="deal"] svg { color: var(--deal) }
+.attrow.six button[data-v="future_opportunity"] svg { color: var(--hot) }
+.attrow.six button[data-v="nurture"] svg { color: var(--nurture) }
+.attrow.six button[data-v="no_deal"] svg, .attrow.six button[data-v="unqualified"] svg { color: var(--dead) }
+.attrow.six button[aria-pressed="true"][data-v="deal"] { border-color: var(--deal); background: var(--deal-dim); box-shadow: 0 0 0 1px var(--deal) inset }
+.attrow.six button[aria-pressed="true"][data-v="future_opportunity"] { border-color: var(--hot); background: var(--hot-dim); box-shadow: 0 0 0 1px var(--hot) inset }
+.attrow.six button[aria-pressed="true"][data-v="nurture"] { border-color: var(--nurture); background: var(--nurture-dim); box-shadow: 0 0 0 1px var(--nurture) inset }
+.attrow.six button[aria-pressed="true"][data-v="no_deal"],
+.attrow.six button[aria-pressed="true"][data-v="unqualified"] { border-color: var(--dead); background: var(--dead-dim); box-shadow: 0 0 0 1px var(--dead) inset }
+
+/* the picker inside a form sits tighter than the one in the outcome sheet */
+.field .outs { margin-top: 2px }
