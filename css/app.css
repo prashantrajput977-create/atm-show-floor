@@ -1067,8 +1067,15 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
 }
 .authcard { width: 100%; max-width: 392px }
 
-.ac-brand { color: var(--tx); line-height: 0; margin-bottom: 30px }
+.ac-brand { color: var(--tx); line-height: 0; margin-bottom: 7px }
 .ac-brand svg { height: 26px; width: auto; max-width: none }
+/* the product name sits under the wordmark, mono and quiet, like a sub-brand */
+.ac-name, .as-name {
+  font-family: var(--ff-mono); font-size: 10.5px; font-weight: 700;
+  letter-spacing: .22em; text-transform: uppercase; color: var(--tx-3);
+}
+.ac-name { margin-bottom: 28px; padding-left: 1px }
+.as-name { margin-top: 7px; color: rgba(255, 255, 255, .5) }
 
 .ac-lede h1 { margin: 0; font-size: 30px; font-weight: 750; letter-spacing: -.04em; line-height: 1.1 }
 .ac-lede p { margin: 10px 0 0; font-size: 14.5px; color: var(--tx-2); line-height: 1.55; max-width: 33ch }
