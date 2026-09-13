@@ -536,7 +536,21 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
   margin-bottom: 10px; border: 1px solid var(--line); border-radius: var(--r);
   overflow: hidden; background: var(--surf); box-shadow: var(--sh-1);
 }
-.wkrow /* A meeting is a row in a register, not a floating panel. Two lines:
+.wkrow .mtg { border-top: 0 }
+.slotsheet .mtg:first-child { border-top: 0 }
+.wkout {
+  display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%;
+  padding: 9px; font-size: 12.5px; font-weight: 700; letter-spacing: .01em;
+  color: var(--brand-2); background: var(--brand-dim);
+  border: 1px solid var(--line); border-top: 0;
+  border-radius: 0 0 var(--r) var(--r);
+  transition: background .16s;
+}
+.wkout svg { width: 15px; height: 15px }
+.wkout:active { background: rgba(43, 79, 238, .17) }
+.wkrow.done .wkout { color: var(--tx-2); background: var(--surf-3) }
+
+/* A meeting is a row in a register, not a floating panel. Two lines:
    who you are seeing, then who they are. The spine and the tag carry state. */
 .mtg {
   display: flex; gap: 12px; align-items: flex-start; width: 100%; text-align: left;
