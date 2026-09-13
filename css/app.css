@@ -465,8 +465,8 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
 /* rows group into sheets; the slot heading sits on the paper above each sheet */
 .agenda { display: flex; flex-direction: column }
 .slotsheet {
-  background: var(--surf); border: 1px solid var(--line); border-radius: var(--r);
-  overflow: hidden; box-shadow: var(--sh-1);
+  background: var(--surf); border: 1px solid var(--line-2); border-radius: 10px;
+  overflow: hidden;
 }
 
 .slot-h {
@@ -536,60 +536,56 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
   margin-bottom: 10px; border: 1px solid var(--line); border-radius: var(--r);
   overflow: hidden; background: var(--surf); box-shadow: var(--sh-1);
 }
-.wkrow .mtg { border-top: 0 }
-.slotsheet .mtg:first-child { border-top: 0 }
-.wkout {
-  display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%;
-  padding: 9px; font-size: 12.5px; font-weight: 700; letter-spacing: .01em;
-  color: var(--brand-2); background: var(--brand-dim);
-  border: 1px solid var(--line); border-top: 0;
-  border-radius: 0 0 var(--r) var(--r);
-  transition: background .16s;
-}
-.wkout svg { width: 15px; height: 15px }
-.wkout:active { background: rgba(43, 79, 238, .17) }
-.wkrow.done .wkout { color: var(--tx-2); background: var(--surf-3) }
-
-/* A printed schedule, not a stack of floating cards: one white sheet per
-   time slot, rows divided by hairlines, colour reserved for outcomes. */
+.wkrow /* A meeting is a row in a register, not a floating panel. Two lines:
+   who you are seeing, then who they are. The spine and the tag carry state. */
 .mtg {
   display: flex; gap: 12px; align-items: flex-start; width: 100%; text-align: left;
-  padding: 13px 14px 13px 15px;
+  padding: 11px 13px 11px 15px;
   background: var(--surf); border: 0; border-top: 1px solid var(--line);
-  transition: background .16s;
+  transition: background .14s;
   position: relative;
 }
 .mtg:first-of-type { border-top: 0 }
-.mtg:active { background: var(--surf-2) }
+.mtg:hover { background: var(--tint) }
+.mtg:active { background: var(--surf-3) }
 .mtg::before {
   content: ''; position: absolute; left: 0; top: -1px; bottom: 0; width: 3px; background: transparent;
 }
 /* your own meetings get a quiet spine instead of a "Mine" pill */
 .mtg[data-mine="1"]::before { background: var(--line-2) }
 .mtg[data-outcome="deal"]::before { background: var(--deal) }
-.mtg[data-outcome="hot"]::before { background: var(--hot) }
+.mtg[data-outcome="future_opportunity"]::before { background: var(--hot) }
 .mtg[data-outcome="nurture"]::before { background: var(--nurture) }
 .mtg[data-outcome="no_deal"]::before, .mtg[data-outcome="unqualified"]::before { background: var(--dead) }
+.mtg[data-outcome="no_show"]::before { background: var(--line-2) }
 .mtg[data-live="1"] { background: rgba(181, 115, 11, .055) }
 .mtg[data-live="1"]::before { background: var(--hot); width: 3px }
-.mtg[data-done="1"] .co, .mtg[data-done="1"] .pr, .mtg[data-done="1"] .tcol { opacity: .55 }
+/* handled meetings recede into the page instead of going grey and blurry */
+.mtg[data-done="1"] { background: var(--surf-2) }
+.mtg[data-done="1"]:hover { background: var(--surf-3) }
+.mtg[data-done="1"] .tcol, .mtg[data-done="1"] .sub { color: var(--tx-3) }
+.mtg[data-done="1"] .co { color: var(--tx-2) }
 
 .mtg .tcol {
-  flex: none; width: 44px; display: flex; flex-direction: column;
-  align-items: flex-start; padding-top: 2px;
+  flex: none; width: 42px; display: flex; flex-direction: column;
+  align-items: flex-start; padding-top: 1px; color: var(--tx);
 }
 .mtg .tcol .hm {
-  font-family: var(--ff-mono); font-size: 15px; font-weight: 700;
-  letter-spacing: -.05em; line-height: 1; font-variant-numeric: tabular-nums;
+  font-family: var(--ff-mono); font-size: 14.5px; font-weight: 700;
+  letter-spacing: -.05em; line-height: 1.05; font-variant-numeric: tabular-nums;
 }
 .mtg .tcol .ap {
-  font-family: var(--ff-mono); font-size: 9px; font-weight: 500; color: var(--tx-3);
-  letter-spacing: .1em; margin-top: 3px;
+  font-family: var(--ff-mono); font-size: 8.5px; font-weight: 500; color: var(--tx-3);
+  letter-spacing: .1em; margin-top: 2px;
 }
 
 .mtg .body { flex: 1 1 auto; min-width: 0 }
+
+/* line one: the company, with state and owner pinned to the right */
+.mtg .top { display: flex; align-items: center; gap: 8px }
 .mtg .co {
-  font-size: 15.5px; font-weight: 700; letter-spacing: -.022em; line-height: 1.2;
+  flex: 1 1 auto; min-width: 0;
+  font-size: 15px; font-weight: 700; letter-spacing: -.024em; line-height: 1.25;
   display: flex; align-items: center; gap: 6px; color: var(--tx);
 }
 .mtg .co .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
@@ -597,19 +593,22 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
   flex: none; width: 5px; height: 5px; border-radius: 50%; background: var(--hot);
   box-shadow: 0 0 0 2.5px var(--hot-dim);
 }
-.mtg .pr {
-  font-size: 12.5px; color: var(--tx-2); margin-top: 3px; line-height: 1.3;
+.mtg .tail { flex: none; display: flex; align-items: center; gap: 6px }
+
+/* line two: the person, then the categorical facts in small caps */
+.mtg .sub {
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 1px 8px;
+  margin-top: 3px; min-width: 0; color: var(--tx-2);
+}
+.mtg .sub .who {
+  font-size: 12.5px; line-height: 1.35; min-width: 0;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-/* categorical facts as quiet small caps, not bordered chips */
-.mtg .facts {
-  display: block; margin-top: 5px; font-size: 9.5px; font-weight: 700;
-  letter-spacing: .085em; text-transform: uppercase; color: var(--tx-3);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+.mtg .sub .fx {
+  flex: none; font-size: 9px; font-weight: 700; letter-spacing: .085em;
+  text-transform: uppercase; color: var(--tx-3); white-space: nowrap;
 }
-.mtg .facts i { font-style: normal; opacity: .45; margin: 0 5px }
-.mtg .meta { display: flex; align-items: center; gap: 5px; margin-top: 8px; flex-wrap: wrap }
-.mtg .rcol { flex: none; display: flex; align-items: center; padding-top: 1px; min-height: 20px }
+.mtg .sub .fx i { font-style: normal; opacity: .45; margin: 0 4px }
 
 .statedot { width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--line-2) }
 .statedot.met { background: var(--deal) }
@@ -661,6 +660,8 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
 .daysum .ln .k::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor }
 .daysum .ln .k.deal { color: var(--deal) }
 .daysum .ln .k.hot { color: var(--hot) }
+.daysum .ln .k.nur { color: var(--nurture) }
+.daysum .ln .k.bad { color: var(--tx-3) }
 
 .prog { height: 5px; border-radius: var(--r-full); background: var(--track); overflow: hidden; display: flex }
 .prog i { display: block; height: 100%; transition: width .5s cubic-bezier(.4, 0, .2, 1) }
@@ -785,21 +786,37 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
   letter-spacing: -.03em; color: var(--deal);
 }
 
-.srcs { padding: 13px }
-.srow { display: flex; align-items: center; gap: 12px; margin-bottom: 12px }
-.srow:last-child { margin-bottom: 0 }
-.sr-t { flex: 0 0 132px; min-width: 0; display: flex; flex-direction: column; gap: 2px }
-.sr-1 { font-size: 12.5px; font-weight: 700; letter-spacing: -.015em; color: var(--tx) }
-.sr-2 { font-size: 11px; font-weight: 600; color: var(--tx-3) }
-.sr-b { flex: 1 1 auto; height: 20px; border-radius: 5px; background: var(--track); overflow: hidden }
-.sr-b i {
-  display: block; height: 100%; border-radius: 5px;
-  background: linear-gradient(90deg, var(--brand), var(--brand-2));
-  transition: width .5s cubic-bezier(.4,0,.2,1);
+/* how it came in: a small table, read left to right */
+.srcs { padding: 3px 0 }
+.srow {
+  display: grid; grid-template-columns: minmax(0, 1fr) repeat(4, 46px);
+  align-items: center; gap: 8px;
+  padding: 10px 13px; border-bottom: 1px solid var(--line);
 }
-.sr-n {
-  flex: none; width: 32px; text-align: right; font-family: var(--ff-mono);
-  font-size: 13px; font-weight: 700; color: var(--tx-2);
+.srow:last-child { border-bottom: 0 }
+.srow.head {
+  padding: 8px 13px; background: var(--surf-2);
+  font-size: 9.5px; font-weight: 700; letter-spacing: .09em;
+  text-transform: uppercase; color: var(--tx-3);
+}
+.srow.head .s-n { color: var(--tx-3) }
+.srow.foot { background: var(--surf-2) }
+.s-1 {
+  min-width: 0; font-size: 13px; font-weight: 700; letter-spacing: -.016em; color: var(--tx);
+}
+.s-1 i {
+  display: block; font-style: normal; font-size: 11px; font-weight: 600;
+  letter-spacing: 0; color: var(--tx-3); margin-top: 2px;
+}
+.srow.head .s-1 { font-size: 9.5px; font-weight: 700; letter-spacing: .09em; color: var(--tx-3) }
+.s-n {
+  text-align: right; font-family: var(--ff-mono); font-size: 13.5px; font-weight: 700;
+  letter-spacing: -.03em; color: var(--tx-2);
+}
+.s-n.hi { color: var(--deal) }
+@media (max-width: 460px) {
+  .srow { grid-template-columns: minmax(0, 1fr) repeat(4, 34px); gap: 4px; padding: 10px }
+  .s-n { font-size: 12px }
 }
 
 /* activity feed */

@@ -209,6 +209,19 @@ document.addEventListener('click', async e => {
     meeting: () => Views.openMeeting(id),
     outcome: () => Views.openOutcome(id),
     outList: () => Views.openOutcomeList(id),
+    hardReload: async () => {
+      try {
+        if ('serviceWorker' in navigator) {
+          const rs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(rs.map(r => r.update()));
+        }
+        if (window.caches) {
+          const ks = await caches.keys();
+          await Promise.all(ks.filter(k => k.indexOf('shell-') === 0).map(k => caches.delete(k)));
+        }
+      } catch (e) { /* a stale cache should never block the reload */ }
+      location.reload();
+    },
     lead: () => Views.openLead(id),
     editLead: () => Views.openEditLead(id),
     editMeeting: () => Views.openEditMeeting(id),

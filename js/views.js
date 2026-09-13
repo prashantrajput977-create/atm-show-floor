@@ -152,7 +152,9 @@ function viewToday() {
         <span class="lb">logged${V.day === 'all' ? '' : ' · ' + UI.fmtDate(V.day)}</span>
         <span class="sp"></span>
         ${c.deal ? `<span class="k deal">${c.deal} deal${c.deal === 1 ? '' : 's'}</span>` : ''}
-        ${c.hot ? `<span class="k hot">${c.hot} hot</span>` : ''}
+        ${c.hot ? `<span class="k hot">${c.hot} future</span>` : ''}
+        ${c.nurture ? `<span class="k nur">${c.nurture} nurture</span>` : ''}
+        ${c.bad ? `<span class="k bad">${c.bad} closed</span>` : ''}
       </div>
     </div>`;
   }
@@ -248,23 +250,24 @@ function meetingCard(m) {
       <span class="ap">${f.ap || (m.meeting_time ? '' : 'TBD')}</span>
     </span>
     <span class="body">
-      <span class="co">
-        ${m.priority ? '<span class="pri" aria-label="Priority"></span>' : ''}
-        <span class="nm">${UI.esc(m.company_name)}</span>
+      <span class="top">
+        <span class="co">
+          ${m.priority ? '<span class="pri" aria-label="Priority"></span>' : ''}
+          <span class="nm">${UI.esc(m.company_name)}</span>
+        </span>
+        <span class="tail">
+          ${m.outcome ? UI.tagFor(m.outcome)
+            : (m.status !== 'scheduled'
+              ? `<span class="tag"><span class="statedot ${m.status}"></span>${UI.esc(m.status.replace('_', ' '))}</span>`
+              : '')}
+          ${lc ? `<span class="tag brand">${I.card}${lc}</span>` : ''}
+          ${own && (V.scope === 'team' || amRep()) ? UI.avatar(own, 'xs') : ''}
+        </span>
       </span>
-      ${m.prospect_name || m.designation
-        ? `<span class="pr">${UI.esc([m.prospect_name, m.designation].filter(Boolean).join(' · '))}</span>`
-        : ''}
-      ${facts.length ? `<span class="facts">${facts.map(UI.esc).join('<i>·</i>')}</span>` : ''}
-      ${m.outcome || m.status !== 'scheduled' || lc
-        ? `<span class="meta">
-            ${m.outcome ? UI.tagFor(m.outcome) : (m.status !== 'scheduled' ? `<span class="tag"><span class="statedot ${m.status}"></span>${UI.esc(m.status.replace('_', ' '))}</span>` : '')}
-            ${lc ? `<span class="tag brand">${I.card}${lc}</span>` : ''}
-          </span>`
-        : ''}
-    </span>
-    <span class="rcol">
-      ${own && (V.scope === 'team' || amRep()) ? UI.avatar(own, 'xs') : ''}
+      ${(m.prospect_name || m.designation || facts.length) ? `<span class="sub">
+        ${m.prospect_name || m.designation ? `<span class="who">${UI.esc([m.prospect_name, m.designation].filter(Boolean).join(' · '))}</span>` : ''}
+        ${facts.length ? `<span class="fx">${facts.map(UI.esc).join('<i>·</i>')}</span>` : ''}
+      </span>` : ''}
     </span>
   </button>`;
 }
@@ -460,6 +463,8 @@ function viewBoard() {
   }).filter(r => r.total || r.cards)
     .sort((a, b) => (b.deal - a.deal) || (b.logged - a.logged) || (b.cards - a.cards) || (b.total - a.total));
 
+  const floor = rows.filter(r => !r.isRep);
+  const booked = rows.filter(r => r.isRep);
   const regions = tally(mtgs, m => m.geo_region || 'Unspecified');
   const cats = tally(mtgs, m => m.category ? shortCat(m.category) : 'Unspecified');
 
@@ -480,29 +485,8 @@ function viewBoard() {
   ${dealsBlock(deals)}
   ${sourceBlock(mtgs, leads)}
 
-  <div class="sec">
-    <div class="sec-h"><h2>Team</h2><span class="count">${rows.length}</span></div>
-    <div class="card lb">
-      ${rows.length ? rows.map((r, i) => {
-        const T = Math.max(1, r.total);
-        return `<div class="lbrow${r.mem.user_id === meId() ? ' me' : ''}">
-          <span class="rk">${i + 1}</span>
-          ${UI.avatar(r.mem, 'sm')}
-          <span class="who">
-            <span class="n">${UI.esc(r.mem.full_name)}${r.mem.user_id === meId() ? ' · you' : ''}</span>
-            <span class="s">${r.isRep ? r.total + ' booked' : r.logged + '/' + r.total + ' called'} · ${r.cards} card${r.cards === 1 ? '' : 's'}${r.value ? ' · ' + UI.money(r.value) : ''}</span>
-            <span class="prog">
-              <i class="d" style="width:${r.deal / T * 100}%"></i>
-              <i class="h" style="width:${r.open / T * 100}%"></i>
-              <i class="x" style="width:${r.bad / T * 100}%"></i>
-              <i class="m" style="width:${r.missed / T * 100}%"></i>
-            </span>
-          </span>
-          <span class="nums"><span class="big" style="color:${r.deal ? 'var(--deal)' : 'var(--tx-2)'}">${r.deal}</span><span class="sm">DEALS</span></span>
-        </div>`;
-      }).join('') : `<div class="hint" style="padding:16px;text-align:center">No activity yet.</div>`}
-    </div>
-  </div>
+  ${lbBlock('On the floor', 'Who took the meeting and logged the call', floor, false)}
+  ${lbBlock('Booked the room', 'Meetings they set up, and what those turned into', booked, true)}
 
   ${barBlock('Where the demand sits', regions)}
   ${barBlock('Business mix', cats)}
@@ -512,6 +496,42 @@ function viewBoard() {
     <div class="card feed">
       ${S.activity.length ? S.activity.slice(0, 26).map(feedRow).join('')
         : `<div class="hint" style="padding:16px;text-align:center">Nothing logged yet. It shows up here the moment anyone calls an outcome.</div>`}
+    </div>
+  </div>`;
+}
+
+/* ---------- leaderboards ----------
+   Leaders take meetings, reps book them. Ranking one against the other made
+   both numbers meaningless, so they get their own tables and own metrics. */
+function lbBlock(title, sub, rows, isRepTable) {
+  if (!rows.length) return '';
+  return `<div class="sec">
+    <div class="sec-h"><h2>${UI.esc(title)}</h2><span class="count">${rows.length}</span></div>
+    <p class="hint" style="margin:0 0 8px 2px">${UI.esc(sub)}</p>
+    <div class="card lb">
+      ${rows.map((r, i) => {
+        const T = Math.max(1, r.total);
+        const bits = isRepTable
+          ? [r.total + ' booked', r.logged + ' logged']
+          : [r.logged + ' of ' + r.total + ' logged'];
+        if (r.cards) bits.push(r.cards + ' card' + (r.cards === 1 ? '' : 's'));
+        if (r.value) bits.push(UI.money(r.value));
+        return `<div class="lbrow${r.mem.user_id === meId() ? ' me' : ''}">
+          <span class="rk">${i + 1}</span>
+          ${UI.avatar(r.mem, 'sm')}
+          <span class="who">
+            <span class="n">${UI.esc(r.mem.full_name)}${r.mem.user_id === meId() ? ' · you' : ''}</span>
+            <span class="s">${bits.join(' · ')}</span>
+            <span class="prog">
+              <i class="d" style="width:${r.deal / T * 100}%"></i>
+              <i class="h" style="width:${r.open / T * 100}%"></i>
+              <i class="x" style="width:${r.bad / T * 100}%"></i>
+              <i class="m" style="width:${r.missed / T * 100}%"></i>
+            </span>
+          </span>
+          <span class="nums"><span class="big" style="color:${r.deal ? 'var(--deal)' : 'var(--tx-3)'}">${r.deal}</span><span class="sm">DEAL${r.deal === 1 ? '' : 'S'}</span></span>
+        </div>`;
+      }).join('')}
     </div>
   </div>`;
 }
@@ -580,37 +600,45 @@ function dealsBlock(deals) {
 }
 
 /* ---------- how it came in ----------
-   Booked, walked in, or typed on the floor. Deals per route, so the team can
-   see which motion is actually producing. */
+   Booked ahead, walked up, or typed in on the floor. One line per route with
+   the numbers that matter, so nobody has to guess where a deal originated. */
 function sourceBlock(mtgs, leads) {
   const keys = ['sheet', 'walkin', 'manual'].filter(k => mtgs.some(m => (m.source || 'sheet') === k));
   const scanned = leads.filter(l => l.card_front_path || l.ocr_text).length;
+  const rows = keys.map(k => {
+    const list = mtgs.filter(m => (m.source || 'sheet') === k);
+    return {
+      k, n: list.length,
+      called: list.filter(m => m.outcome).length,
+      deal: list.filter(m => m.outcome === 'deal').length,
+      open: list.filter(m => m.outcome && OUT_MAP[m.outcome]?.grp === 'open').length
+    };
+  });
+
   return `<div class="sec">
     <div class="sec-h"><h2>How it came in</h2></div>
     <div class="card srcs">
-      ${keys.map(k => {
-        const list = mtgs.filter(m => (m.source || 'sheet') === k);
-        const lg = list.filter(m => m.outcome).length;
-        const dl = list.filter(m => m.outcome === 'deal').length;
-        const T = Math.max(1, list.length);
-        return `<div class="srow">
-          <span class="sr-t">
-            <span class="sr-1">${SOURCES[k].label}</span>
-            <span class="sr-2">${lg}/${list.length} called${dl ? ' · ' + dl + ' deal' + (dl === 1 ? '' : 's') : ''}</span>
-          </span>
-          <span class="sr-b"><i style="width:${lg / T * 100}%"></i></span>
-          <span class="sr-n tnum">${list.length}</span>
-        </div>`;
-      }).join('')}
-      <div class="srow">
-        <span class="sr-t">
-          <span class="sr-1">Cards captured</span>
-          <span class="sr-2">${scanned} scanned, ${Math.max(0, leads.length - scanned)} typed</span>
-        </span>
-        <span class="sr-b"><i style="width:${leads.length ? scanned / Math.max(1, leads.length) * 100 : 0}%"></i></span>
-        <span class="sr-n tnum">${leads.length}</span>
+      <div class="srow head">
+        <span class="s-1">Route</span>
+        <span class="s-n">Total</span><span class="s-n">Called</span>
+        <span class="s-n">Deals</span><span class="s-n">In play</span>
+      </div>
+      ${rows.map(r => `<div class="srow">
+        <span class="s-1">${SOURCES[r.k].label}<i>${SOURCES[r.k].desc}</i></span>
+        <span class="s-n tnum">${r.n}</span>
+        <span class="s-n tnum">${r.called}</span>
+        <span class="s-n tnum${r.deal ? ' hi' : ''}">${r.deal}</span>
+        <span class="s-n tnum">${r.open}</span>
+      </div>`).join('')}
+      <div class="srow foot">
+        <span class="s-1">Cards captured<i>${scanned} read by the scanner, ${Math.max(0, leads.length - scanned)} typed by hand</i></span>
+        <span class="s-n tnum">${leads.length}</span>
+        <span class="s-n">·</span><span class="s-n">·</span><span class="s-n">·</span>
       </div>
     </div>
+    ${keys.length === 1 && keys[0] === 'sheet'
+      ? `<p class="hint" style="margin:8px 2px 0">Everything so far came off the booked sheet. Walk-ins and hand-added prospects show up here as their own rows the moment someone logs one.</p>`
+      : ''}
   </div>`;
 }
 
@@ -1290,7 +1318,17 @@ function render() {
   const main = UI.$('#main');
   const map = { today: viewToday, agenda: viewAgenda, leads: viewLeads, walkins: viewWalkins, scan: viewScan, board: viewBoard, me: viewMe };
   const fn = map[V.tab] || viewToday;
-  main.innerHTML = `<div class="page">${fn()}</div>`;
+  /* A throw inside one view used to leave the last screen on display, so the
+     tab looked broken with no clue why. Now it says so, on screen. */
+  try {
+    main.innerHTML = `<div class="page">${fn()}</div>`;
+  } catch (err) {
+    console.error('view failed', V.tab, err);
+    main.innerHTML = `<div class="page">${UI.emptyState('alert', 'This screen hit an error',
+      'Nothing is lost and your data is safe. Reload and it will come back. If it keeps happening, send this line: ' +
+      (err && err.message ? err.message : 'unknown'),
+      { act: 'hardReload', label: 'Reload the app', icon: 'refresh' })}</div>`;
+  }
   hydrateThumbs();
   UI.$$('.tab').forEach(t => t.setAttribute('aria-selected', String(t.dataset.t === V.tab)));
   const titles = { today: 'Today', agenda: 'All days', leads: 'Leads', walkins: 'Walk-ins', scan: 'Scan a card', board: 'Team board', me: 'You' };
