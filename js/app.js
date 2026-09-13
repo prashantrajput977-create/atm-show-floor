@@ -7,10 +7,18 @@
 
 /* ---------------- boot ---------------- */
 let pendingScanMeeting = null;
+let pendingWalkin = false;
 
 async function boot() {
-  $('#authMark').innerHTML = I.logo;
-  $('#bmLogo').innerHTML = I.logo;
+  /* the real Vervotech wordmark, inherited black from currentColor */
+  $('#authMark').innerHTML = BRAND.word;
+  $('#authMarkSm').innerHTML = BRAND.word;
+  $('#bmLogo').innerHTML = BRAND.word;
+  $('#railLogo').innerHTML = BRAND.word;
+  $('.as-wm').innerHTML = BRAND.mark;
+  $('.ac-endorse').innerHTML = BRAND.endorse;
+  $('#railFoot').innerHTML = BRAND.endorse;
+  $('.acf-lock').innerHTML = I.lock;
   $('#li_toggle').innerHTML = I.eye;
   $('#sheetX').innerHTML = I.x;
   $('.tab[data-t="today"] .ic').innerHTML = I.calendar;
@@ -74,10 +82,11 @@ function paintMe() {
 }
 function paintEvent() {
   const e = UI.activeEvent();
-  $('#bmName').textContent = APP_NAME;
-  $('#bmSub').textContent = e
+  const line = e
     ? [e.short_name || e.name, e.city, e.stand ? 'Stand ' + e.stand : ''].filter(Boolean).join(' · ')
     : 'no event';
+  $('#bmSub').textContent = line;
+  $('#railEv').textContent = line;
   if (e) { try { localStorage.setItem('sf_evtag', [e.name, e.city].filter(Boolean).join(' · ')); } catch (_) {} }
 }
 function paintSync() {
@@ -149,10 +158,12 @@ $('#meBtn').onclick = () => { V.tab = 'me'; render(); renderDayRail(); };
 $('#evBtn').innerHTML = I.chev;
 $('#evBtn').onclick = () => Views.openSwitchEvent();
 /* the wordmark behaves like a logo: always returns to today */
-$('#homeBtn').onclick = () => {
+const goHome = () => {
   V.tab = 'today'; V.day = UI.nowInTz().date; V.q = '';
   renderDayRail(); render(); window.scrollTo({ top: 0, behavior: 'smooth' }); UI.buzz(8);
 };
+$('#homeBtn').onclick = goHome;
+$('#railHome').onclick = goHome;
 $('#syncPill').onclick = () => {
   if (!navigator.onLine) return toast('Still offline. Everything you do is saved and will sync.', { kind: 'warn' });
   toast(S.pending ? `Pushing ${S.pending} change${S.pending === 1 ? '' : 's'}` : 'Refreshing');
@@ -211,9 +222,13 @@ document.addEventListener('click', async e => {
     team: () => Views.openTeam(),
     linkMeeting: () => Views.openLinkMeeting(id),
     goScan: () => { V.tab = 'scan'; render(); renderDayRail(); },
-    camera: () => { pendingScanMeeting = null; $('#camPick').click(); },
-    upload: () => { pendingScanMeeting = null; $('#filePick').click(); },
+    camera: () => { pendingScanMeeting = null; pendingWalkin = false; $('#camPick').click(); },
+    upload: () => { pendingScanMeeting = null; pendingWalkin = false; $('#filePick').click(); },
     manual: () => openReview({ fields: OCR.normalize({}), engine: 'manual' }, null),
+    /* scanning from the Walk-ins tab logs the meeting too, not just the contact */
+    scanWalkin: () => { pendingScanMeeting = null; pendingWalkin = true; $('#camPick').click(); },
+    uploadWalkin: () => { pendingScanMeeting = null; pendingWalkin = true; $('#filePick').click(); },
+    manualWalkinCard: () => { pendingWalkin = true; openReview({ fields: OCR.normalize({}), engine: 'manual' }, null); },
     scanFor: () => { pendingScanMeeting = id; closeSheet(); $('#camPick').click(); },
     clearQ: () => { V.q = ''; render(); },
     copy: () => UI.copy(el.dataset.v, 'Copied'),
@@ -315,12 +330,14 @@ async function runScan(file) {
 function openReview(res, mtgId) {
   const f = res.fields || {};
   const blobs = res.blob ? { front: res.blob } : null;
+  const asWalkin = pendingWalkin && !mtgId;
   let interest = null;
   let linkTo = mtgId || null;
 
   const fake = { company: f.company, email: f.email, website: f.website, full_name: f.full_name };
   const cands = Views.matchMeetings(fake).slice(0, 3);
-  if (!linkTo && cands.length && cands[0].score >= 50) linkTo = cands[0].m.id;
+  /* a walk-in is by definition not on the sheet, so we never auto-link one */
+  if (!asWalkin && !linkTo && cands.length && cands[0].score >= 50) linkTo = cands[0].m.id;
 
   const engineBar = res.engine === 'manual' ? ''
     : `<div class="ocrbar" data-s="${res.engine === 'queued' ? 'warn' : res.engine === 'device' ? 'warn' : 'ok'}">
@@ -345,8 +362,8 @@ function openReview(res, mtgId) {
         <span class="m2">${esc(UI.fmtDate(m.meeting_date))} · ${esc(UI.fmtTimeStr(m.meeting_time))}${m.prospect_name ? ' · ' + esc(m.prospect_name) : ''}</span></span>
       </button>`).join('')}
       <button class="matchopt" data-pick="" aria-pressed="${!linkTo}">
-        <span class="mi">${I.plus}</span>
-        <span class="mb"><span class="m1">Keep it standalone</span><span class="m2">A walk-in, not on the sheet</span></span>
+        <span class="mi">${I.handshake}</span>
+        <span class="mb"><span class="m1">${asWalkin ? 'Log it as a walk-in' : 'Keep it standalone'}</span><span class="m2">Not on the sheet, picked up on the floor</span></span>
       </button>
     </div>` : ''}
 
@@ -385,8 +402,9 @@ function openReview(res, mtgId) {
       <pre class="hint mono" style="white-space:pre-wrap;margin-top:8px">${esc(f.raw_text)}</pre></details>` : ''}`;
 
   openSheet({
-    title: 'Check the details', sub: f.full_name || f.company || 'New contact', body,
-    foot: `<button class="btn ghost" data-x>Discard</button><button class="btn primary" data-save>Save contact</button>`,
+    title: asWalkin ? 'Log a walk-in' : 'Check the details',
+    sub: f.full_name || f.company || 'New contact', body,
+    foot: `<button class="btn ghost" data-x>Discard</button><button class="btn primary" data-save>${asWalkin ? 'Log walk-in' : 'Save contact'}</button>`,
     onMount(b, ft) {
       b.querySelectorAll('#rOut .outbtn').forEach(btn => btn.onclick = () => {
         interest = btn.dataset.v;
@@ -398,7 +416,13 @@ function openReview(res, mtgId) {
         b.querySelectorAll('[data-pick]').forEach(x => x.setAttribute('aria-pressed', String((x.dataset.pick || null) === linkTo)));
       });
       const re = b.querySelector('[data-act="rescan"]');
-      if (re) re.onclick = ev => { ev.preventDefault(); ev.stopPropagation(); closeSheet(); $('#camPick').click(); };
+      if (re) re.onclick = ev => {
+        ev.preventDefault(); ev.stopPropagation();
+        closeSheet();
+        /* closing resets the flags, so carry the walk-in intent through a retake */
+        pendingWalkin = asWalkin;
+        $('#camPick').click();
+      };
 
       ft.querySelector('[data-x]').onclick = async () => {
         closeSheet();
@@ -412,6 +436,29 @@ function openReview(res, mtgId) {
           return toast('Give it at least a name, company or email.', { kind: 'warn' });
         }
         closeSheet();
+
+        /* scanned from the Walk-ins tab and not matched to a booked slot:
+           create the meeting too, so it lands on the walk-in list with an outcome */
+        let madeWalkin = null;
+        if (asWalkin && !linkTo) {
+          const now = UI.nowInTz();
+          const days = Views.eventDays ? Views.eventDays() : [];
+          madeWalkin = await Store.addMeeting({
+            company_name: co || name || 'Walk-in',
+            meeting_date: days.length && !days.includes(now.date) ? days[0] : now.date,
+            meeting_time: String(Math.floor(now.min / 60)).padStart(2, '0') + ':' + String(now.min % 60).padStart(2, '0'),
+            prospect_name: name, designation: g('#r_title'),
+            email: em ? em.toLowerCase() : null, mobile: g('#r_phone'),
+            geo_region: g('#r_region'), category: 'New Business',
+            owner_id: S.me?.user_id || null, owner_name: S.me?.short_name || null,
+            location: 'Our stand', comments: g('#r_notes'),
+            source: 'walkin', status: 'met', duration_min: 15,
+            outcome: interest || null,
+            met_at: new Date().toISOString()
+          });
+          linkTo = madeWalkin.id;
+        }
+
         const lead = await Store.saveLead({
           full_name: name, designation: g('#r_title'), company: co,
           email: em ? em.toLowerCase() : null, phone: g('#r_phone'), phone_2: g('#r_phone2'),
@@ -422,7 +469,7 @@ function openReview(res, mtgId) {
           ocr_text: f.raw_text || null, ocr_provider: res.engine || null
         }, blobs);
 
-        if (linkTo && interest) {
+        if (linkTo && interest && !madeWalkin) {
           const m = S.meetings.find(x => x.id === linkTo);
           if (m && !m.outcome) {
             await Store.updateMeeting(linkTo, {
@@ -433,12 +480,21 @@ function openReview(res, mtgId) {
           }
         }
         UI.buzz(18);
-        toast(`${name || co || 'Contact'} saved`, { kind: 'ok', action: 'Open', onAction: () => Views.openLead(lead.id) });
+        if (madeWalkin) {
+          toast(`${co || name || 'Walk-in'} logged`, {
+            kind: 'ok', action: interest ? 'Open' : 'Outcome',
+            onAction: () => interest ? Views.openLead(lead.id) : Views.openOutcome(madeWalkin.id)
+          });
+          renderDayRail();
+        } else {
+          toast(`${name || co || 'Contact'} saved`, { kind: 'ok', action: 'Open', onAction: () => Views.openLead(lead.id) });
+        }
         pendingScanMeeting = null;
+        pendingWalkin = false;
         render();
       };
     },
-    onClose() { pendingScanMeeting = null; }
+    onClose() { pendingScanMeeting = null; pendingWalkin = false; }
   });
 }
 

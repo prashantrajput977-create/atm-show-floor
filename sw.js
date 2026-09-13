@@ -3,7 +3,7 @@
    Fonts and Tesseract are cached on first use.
    Supabase traffic is never cached. */
 
-const V = 'sf-v12';
+const V = 'sf-v13';
 const SHELL = 'shell-' + V;
 const RUNTIME = 'rt-' + V;
 
@@ -12,6 +12,7 @@ const CORE = [
   './index.html',
   './css/app.css',
   './js/vendor/supabase.js',
+  './js/brand.js',
   './js/config.js',
   './js/store.js',
   './js/ocr.js',
@@ -19,6 +20,7 @@ const CORE = [
   './js/views.js',
   './js/app.js',
   './manifest.json',
+  './brand/word.svg',
   './icons/favicon.svg',
   './icons/icon-192.png',
   './icons/icon-512.png',

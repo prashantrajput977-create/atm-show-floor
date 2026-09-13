@@ -360,18 +360,26 @@ function viewWalkins() {
   const logged = list.length - open;
 
   let html = `
-  <div class="leadtop">
-    <div class="segs" style="flex:1 1 auto;margin:0">
-      <button data-wk="mine" aria-selected="${V.wkScope !== 'team'}">${amRep() ? 'Booked by me' : 'Mine'} · ${all.filter(isMine).length}</button>
-      <button data-wk="team" aria-selected="${V.wkScope === 'team'}">Whole team · ${all.length}</button>
+  <div class="wkcap">
+    <button class="wkscan" data-act="scanWalkin">
+      <span class="ws-i">${I.scan}</span>
+      <span class="ws-t"><b>Scan their card</b><i>We read it and log the walk-in for you</i></span>
+      ${I.chev}
+    </button>
+    <div class="wkalt">
+      <button data-act="uploadWalkin">${I.image}Use a photo</button>
+      <button data-act="addMeeting">${I.edit}Type it in</button>
     </div>
-    <button class="addlead" data-act="addMeeting" aria-label="Add a walk-in meeting">${I.plus}<span>Add</span></button>
+  </div>
+
+  <div class="segs" style="margin:0 0 12px">
+    <button data-wk="mine" aria-selected="${V.wkScope !== 'team'}">${amRep() ? 'Booked by me' : 'Mine'} · ${all.filter(isMine).length}</button>
+    <button data-wk="team" aria-selected="${V.wkScope === 'team'}">Whole team · ${all.length}</button>
   </div>`;
 
   if (!list.length) {
     html += UI.emptyState('handshake', 'No walk-ins yet',
-      'Someone stops at the stand who is not on the sheet? Log them here and mark the outcome before they leave.',
-      { act: 'addMeeting', label: 'Add a walk-in', icon: 'plus' });
+      'Someone stops at the stand who is not on the sheet? Scan their card above and the meeting logs itself.');
     return html;
   }
 

@@ -23,49 +23,70 @@
 <body>
 
 <!-- ============ BOOT ============ -->
-<div id="boot" style="min-height:100dvh;display:grid;place-items:center;padding:24px">
+<div id="boot" style="min-height:100dvh;display:grid;place-items:center;padding:24px;background:#F2F0EB">
   <div style="text-align:center">
-    <svg viewBox="0 0 32 32" fill="none" style="width:40px;height:40px;color:#1E3FD0;margin:0 auto 14px">
-      <g stroke="currentColor" stroke-width="2.7" stroke-linecap="round">
-        <path d="M4 11V7a3 3 0 0 1 3-3h4"/><path d="M21 4h4a3 3 0 0 1 3 3v4"/>
-        <path d="M28 21v4a3 3 0 0 1-3 3h-4"/><path d="M11 28H7a3 3 0 0 1-3-3v-4"/>
-      </g>
-      <circle cx="16" cy="16" r="3.9" fill="#2B4FEE"/>
-    </svg>
-    <div style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#6B7587;font-weight:700">Vervotech Showdown</div>
+    <img src="brand/word.svg" alt="Vervotech" style="width:112px;height:auto;display:block;margin:0 auto 16px">
+    <div style="font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#857E71;font-weight:700;font-family:'JetBrains Mono',ui-monospace,monospace">Showdown</div>
   </div>
 </div>
 
 <!-- ============ AUTH ============ -->
 <div id="authView" hidden>
-  <div class="authbg" aria-hidden="true"></div>
-  <div class="auth">
-    <div class="mark" id="authMark"></div>
-    <div class="evtag" id="authEv" hidden></div>
-    <h1>Your floor,<br>in your pocket.</h1>
-    <p class="sub">Every meeting on your name, every card you scan, every outcome you call. Live across the team.</p>
+  <div class="authwrap">
 
-    <form id="loginForm" novalidate>
-      <div class="field">
-        <label for="li_email">Work email</label>
-        <input class="input" id="li_email" type="email" name="email" inputmode="email"
-               autocomplete="username" autocapitalize="none" spellcheck="false"
-               placeholder="you@vervotech.com" required>
+    <aside class="authside">
+      <span class="as-wm" aria-hidden="true"></span>
+      <div class="as-top">
+        <div class="as-brand" id="authMark" role="img" aria-label="Vervotech"></div>
+        <div class="as-ev" id="authEv" hidden></div>
       </div>
-      <div class="field">
-        <label for="li_pass">Password</label>
-        <div style="position:relative">
-          <input class="input" id="li_pass" type="password" name="password"
-                 autocomplete="current-password" placeholder="••••••••••" required
-                 style="padding-right:46px">
-          <button type="button" class="iconbtn" id="li_toggle" aria-label="Show password"
-                  style="position:absolute;right:4px;top:4px;width:38px;height:38px;border:0;background:transparent"></button>
+      <div class="as-mid">
+        <h1>Your floor,<br>in your pocket.</h1>
+        <p>Every meeting on your name, every card you scan, every outcome you call. Live across the team.</p>
+      </div>
+      <ul class="as-list">
+        <li><span class="as-n">01</span>Your own schedule, minute by minute</li>
+        <li><span class="as-n">02</span>Scan a card, we read it for you</li>
+        <li><span class="as-n">03</span>Call the outcome before they walk off</li>
+      </ul>
+    </aside>
+
+    <div class="authpane">
+      <div class="authcard">
+        <div class="ac-brand" id="authMarkSm" role="img" aria-label="Vervotech"></div>
+        <div class="ac-lede">
+          <h1>Your floor,<br>in your pocket.</h1>
+          <p>Every meeting on your name, every card you scan, every outcome you call.</p>
+        </div>
+        <div class="ac-h"><h2>Sign in</h2><p>Vervotech field team only.</p></div>
+
+        <form id="loginForm" novalidate>
+          <div class="field">
+            <label for="li_email">Work email</label>
+            <input class="input" id="li_email" type="email" name="email" inputmode="email"
+                   autocomplete="username" autocapitalize="none" spellcheck="false"
+                   placeholder="you@vervotech.com" required>
+          </div>
+          <div class="field">
+            <label for="li_pass">Password</label>
+            <div class="passwrap">
+              <input class="input" id="li_pass" type="password" name="password"
+                     autocomplete="current-password" placeholder="••••••••••" required>
+              <button type="button" class="iconbtn peek" id="li_toggle" aria-label="Show password"></button>
+            </div>
+          </div>
+          <div class="hint bad" id="li_err" hidden></div>
+          <button class="btn primary block" id="li_btn" type="submit">Sign in</button>
+        </form>
+
+        <div class="ac-foot">
+          <span class="acf-lock"></span>
+          <span>Works offline once you are in. Card images stay in your event only.</span>
         </div>
       </div>
-      <div class="hint bad" id="li_err" hidden></div>
-      <button class="btn primary block" id="li_btn" type="submit" style="margin-top:4px">Sign in</button>
-    </form>
-    <div class="foot">Vervotech field team only.<br>Works offline once you are in.</div>
+      <div class="ac-endorse" aria-label="A Juniper Group and CSI company"></div>
+    </div>
+
   </div>
 </div>
 
@@ -74,9 +95,8 @@
   <header class="appbar">
     <div class="appbar-row">
       <button class="brandmark" id="homeBtn" aria-label="Vervotech Showdown, go to today">
-        <span class="bm-mark" id="bmLogo"></span>
         <span class="bm-t">
-          <span class="bm-1" id="bmName">Vervotech Showdown</span>
+          <span class="bm-1" id="bmLogo" role="img" aria-label="Vervotech"></span>
           <span class="bm-2" id="bmSub">loading</span>
         </span>
       </button>
@@ -90,9 +110,12 @@
     <nav class="dayrail scroll" id="dayrail" aria-label="Event days"></nav>
   </header>
 
-  <main id="main"></main>
-
-  <nav class="tabbar" role="tablist" aria-label="Sections">
+  <aside class="rail">
+    <button class="rail-brand" id="railHome" aria-label="Vervotech Showdown, go to today">
+      <span class="rb-logo" id="railLogo" role="img" aria-label="Vervotech"></span>
+      <span class="rb-ev" id="railEv">Showdown</span>
+    </button>
+    <nav class="tabbar" role="tablist" aria-label="Sections">
     <button class="tab" role="tab" data-t="today" aria-selected="true">
       <span class="ic"></span><span>Today</span>
     </button>
@@ -114,7 +137,11 @@
     <button class="tab" role="tab" data-t="me" aria-selected="false">
       <span class="ic"></span><span>Me</span>
     </button>
-  </nav>
+    </nav>
+    <div class="rail-foot" id="railFoot"></div>
+  </aside>
+
+  <main id="main"></main>
 </div>
 
 <!-- ============ OVERLAYS ============ -->
@@ -137,6 +164,7 @@
 <input type="file" id="camPick" accept="image/*" capture="environment" hidden>
 
 <script src="js/vendor/supabase.js"></script>
+<script src="js/brand.js"></script>
 <script src="js/config.js"></script>
 <script src="js/store.js"></script>
 <script src="js/ocr.js"></script>

@@ -63,7 +63,7 @@
   --sal: env(safe-area-inset-left, 0px);
   --sar: env(safe-area-inset-right, 0px);
   --kb: 0px;
-  --bar-h: 60px;
+  --bar-h: 64px;
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -123,26 +123,19 @@ a { color: var(--brand-2); text-decoration: none; }
 }
 .appbar-row { display: flex; align-items: center; gap: 10px; }
 
-/* the lockup is the home button: mark in an ink tile, wordmark beside it */
+/* the real Vervotech wordmark is the home button, event line beneath it */
 .brandmark {
   display: flex; align-items: center; gap: 9px; min-width: 0;
   transition: opacity .14s, transform .1s;
 }
 .brandmark:active { transform: scale(.97); opacity: .8 }
-.brandmark .bm-mark {
-  flex: none; width: 30px; height: 30px; border-radius: 9px;
-  display: grid; place-items: center; background: var(--tx); color: #fff;
-}
-.brandmark .bm-mark svg { width: 19px; height: 19px }
-.brandmark .bm-t { min-width: 0; display: flex; flex-direction: column; align-items: flex-start }
-.brandmark .bm-1 {
-  font-size: 14.5px; font-weight: 750; letter-spacing: -.03em; line-height: 1.05;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--tx);
-}
+.brandmark .bm-t { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 5px }
+.brandmark .bm-1 { display: block; color: var(--tx); line-height: 0 }
+.brandmark .bm-1 svg { height: 18px; width: auto; max-width: none }
 .brandmark .bm-2 {
   font-family: var(--ff-mono);
   font-size: 9px; color: var(--tx-3); letter-spacing: .11em; text-transform: uppercase;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 3px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
 .spacer { flex: 1 1 auto; min-width: 4px; }
@@ -229,51 +222,59 @@ main {
 .page { animation: fadein .22s ease both; }
 @keyframes fadein { from { opacity: 0; transform: translateY(5px) } to { opacity: 1; transform: none } }
 
+/* On phones the rail dissolves: the nav goes back to a fixed bottom deck. */
+.rail { display: contents }
+.rail-brand, .rail-foot { display: none }
+
+/* A solid deck, not a translucent film. Opaque surface, hairline above,
+   and a lifted shadow so it reads as a physical layer over the paper. */
 .tabbar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 45;
   height: calc(var(--bar-h) + var(--sab));
-  padding: 0 max(6px, var(--sal)) var(--sab) max(6px, var(--sar));
+  padding: 0 max(4px, var(--sal)) var(--sab) max(4px, var(--sar));
   display: flex; align-items: stretch;
-  background: var(--bar);
-  backdrop-filter: saturate(160%) blur(18px);
-  -webkit-backdrop-filter: saturate(160%) blur(18px);
-  border-top: 1px solid var(--line);
+  background: #FBFAF7;
+  border-top: 1px solid var(--line-2);
+  box-shadow: 0 -1px 0 rgba(255, 255, 255, .9) inset, 0 -8px 24px rgba(22, 19, 14, .07);
 }
 .tab {
   flex: 1 1 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 4px; color: var(--tx-3); font-size: 9px; font-weight: 650; letter-spacing: -.005em;
+  gap: 3px; color: var(--tx-3); font-size: 9.5px; font-weight: 700; letter-spacing: -.012em;
   position: relative; transition: color .16s; min-width: 0;
-  padding: 2px 1px 0;
+  padding: 3px 1px 0;
 }
 /* every tab's icon box is the same height, so the labels share one baseline */
-.tab > span:first-child { height: 30px; display: grid; place-items: center }
-.tab svg { width: 20px; height: 20px; }
-.tab > span:last-child { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
-.tab[aria-selected="true"] { color: var(--tx); }
-.tab[aria-selected="true"]::before {
-  content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
-  width: 26px; height: 2px; border-radius: 0 0 3px 3px; background: var(--brand);
+.tab > span:first-child {
+  height: 28px; width: 34px; border-radius: 9px; display: grid; place-items: center;
+  transition: background .18s, color .18s;
 }
+.tab svg { width: 21px; height: 21px; }
+.tab > span:last-child { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+/* the active tab gets a filled ink chip, which holds its weight at a glance */
+.tab[aria-selected="true"] { color: var(--tx); }
+.tab[aria-selected="true"] > span:first-child { background: var(--tx); color: var(--ink-2); }
+.tab:not(.scan):active > span:first-child { transform: scale(.9) }
 .tab .bdg {
-  position: absolute; top: 5px; left: 50%; margin-left: 6px;
+  position: absolute; top: 2px; left: 50%; margin-left: 7px;
   min-width: 15px; height: 15px; padding: 0 4px; border-radius: var(--r-full);
   background: var(--dead); color: #fff; font-size: 9.5px; font-weight: 700;
   display: grid; place-items: center; line-height: 1;
+  box-shadow: 0 0 0 2px #FBFAF7;
 }
 /* Seven tabs puts Scan in slot four: the true centre of the bar. Three columns
    each side, so the raised button sits on the bar's axis rather than near it. */
-.tab.scan { flex: 0 0 62px }
-.tab.scan > span:first-child { height: 30px; overflow: visible }
+.tab.scan { flex: 0 0 64px }
+.tab.scan > span:first-child { height: 28px; width: auto; overflow: visible; background: none !important }
 .tab.scan .ring {
-  width: 44px; height: 44px; border-radius: var(--r-full); display: grid; place-items: center;
+  width: 46px; height: 46px; border-radius: var(--r-full); display: grid; place-items: center;
   background: var(--brand); color: #fff;
-  box-shadow: 0 4px 14px rgba(43, 79, 238, .34), 0 0 0 3px var(--bar);
-  margin-top: -14px; transition: transform .14s, background .14s;
+  box-shadow: 0 5px 14px rgba(43, 79, 238, .3), 0 0 0 4px #FBFAF7;
+  margin-top: -16px; transition: transform .14s, background .14s;
 }
 .tab.scan .ring svg { width: 22px; height: 22px }
 .tab.scan:active .ring { transform: scale(.92) }
 .tab.scan[aria-selected="true"] .ring { background: var(--brand-2) }
-.tab.scan[aria-selected="true"]::before { display: none }
+.tab.scan[aria-selected="true"] { color: var(--brand-2) }
 
 /* ============================================================
    PRIMITIVES
@@ -455,6 +456,38 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
   border: 1px solid rgba(181, 115, 11, .4); background: var(--hot-dim);
   padding: 1px 6px; border-radius: var(--r-full); flex: none;
 }
+
+/* walk-ins: capture first. Scanning is the primary path, typing is the backup. */
+.wkcap { margin-bottom: 14px }
+.wkscan {
+  display: flex; align-items: center; gap: 13px; width: 100%; text-align: left;
+  padding: 14px 13px; border-radius: var(--r);
+  background: var(--surf); border: 1px solid var(--line); box-shadow: var(--sh-1);
+  transition: transform .12s, box-shadow .16s, border-color .16s;
+}
+.wkscan:hover { border-color: var(--line-2); box-shadow: var(--sh-2) }
+.wkscan:active { transform: scale(.99) }
+.wkscan .ws-i {
+  flex: none; width: 46px; height: 46px; border-radius: 13px;
+  display: grid; place-items: center; background: var(--brand); color: #fff;
+}
+.wkscan .ws-i svg { width: 23px; height: 23px }
+.wkscan .ws-t { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 3px }
+.wkscan .ws-t b { font-size: 15px; font-weight: 750; letter-spacing: -.02em; color: var(--tx) }
+.wkscan .ws-t i { font-style: normal; font-size: 12px; color: var(--tx-2); line-height: 1.4 }
+.wkscan > svg { width: 17px; height: 17px; flex: none; color: var(--tx-3); transform: rotate(-90deg) }
+
+.wkalt { display: flex; gap: 8px; margin-top: 8px }
+.wkalt button {
+  flex: 1 1 0; display: flex; align-items: center; justify-content: center; gap: 7px;
+  height: 40px; border-radius: var(--r-sm);
+  font-size: 12.5px; font-weight: 700; color: var(--tx-2);
+  background: var(--surf); border: 1px solid var(--line);
+  transition: background .15s, color .15s;
+}
+.wkalt button svg { width: 15px; height: 15px }
+.wkalt button:hover { background: var(--surf-2); color: var(--tx) }
+.wkalt button:active { background: var(--surf-3) }
 
 /* walk-ins: card and its outcome button read as one unit */
 .wkstat {
@@ -835,38 +868,108 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
 /* ============================================================
    AUTH
    ============================================================ */
-.auth {
-  min-height: 100dvh; display: flex; flex-direction: column; justify-content: center;
-  padding: calc(var(--sat) + 30px) 22px calc(var(--sab) + 30px);
-  max-width: 430px; margin: 0 auto; position: relative; z-index: 1;
+/* Phone first: one warm paper column. The ink panel below only appears
+   once there is width to earn it. No gradient wash, no grid overlay. */
+.authwrap { min-height: 100dvh; display: flex; background: var(--ink) }
+.authside { display: none }
+
+.authpane {
+  flex: 1 1 auto; min-width: 0;
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
+  padding: calc(var(--sat) + 26px) max(20px, var(--sal)) calc(var(--sab) + 22px) max(20px, var(--sar));
 }
-.authbg { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none }
-.authbg::before {
-  content: ''; position: absolute; width: 130vmax; height: 130vmax;
-  left: 50%; top: -40vmax; transform: translateX(-50%);
-  background: radial-gradient(circle, rgba(43, 79, 238, .13) 0%, transparent 44%);
+.authcard { width: 100%; max-width: 392px }
+
+.ac-brand { color: var(--tx); line-height: 0; margin-bottom: 30px }
+.ac-brand svg { height: 26px; width: auto; max-width: none }
+
+.ac-lede h1 { margin: 0; font-size: 30px; font-weight: 750; letter-spacing: -.04em; line-height: 1.1 }
+.ac-lede p { margin: 10px 0 0; font-size: 14.5px; color: var(--tx-2); line-height: 1.55; max-width: 33ch }
+.ac-h { display: none }
+
+#loginForm { margin-top: 28px; display: flex; flex-direction: column; gap: 14px }
+#loginForm .field { margin: 0 }
+.passwrap { position: relative }
+.passwrap .input { padding-right: 46px }
+.iconbtn.peek {
+  position: absolute; right: 3px; top: 3px; width: 40px; height: 40px;
+  border: 0; background: transparent; color: var(--tx-3); border-radius: 8px;
 }
-.authbg::after {
-  content: ''; position: absolute; inset: 0;
-  background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
-  background-size: 44px 44px; opacity: .32;
-  mask-image: radial-gradient(circle at 50% 22%, #000 0%, transparent 68%);
-  -webkit-mask-image: radial-gradient(circle at 50% 22%, #000 0%, transparent 68%);
+.iconbtn.peek:hover { color: var(--tx) }
+#li_btn { margin-top: 2px; height: 50px; font-size: 15px }
+
+.ac-foot {
+  display: flex; align-items: flex-start; gap: 8px; margin-top: 22px;
+  padding-top: 18px; border-top: 1px solid var(--line);
+  font-size: 11.5px; color: var(--tx-3); line-height: 1.55;
 }
-.auth .mark { width: 46px; height: 46px; color: var(--brand-2); margin-bottom: 20px }
-.auth .mark svg { width: 100%; height: 100% }
-.auth h1 { margin: 0; font-size: 28px; font-weight: 750; letter-spacing: -.038em; line-height: 1.12 }
-.auth .sub { margin: 8px 0 26px; font-size: 14px; color: var(--tx-2); line-height: 1.5 }
-.auth .evtag {
-  display: inline-flex; align-items: center; gap: 7px; margin-bottom: 20px;
-  height: 27px; padding: 0 11px; border-radius: var(--r-full);
-  background: var(--brand-dim); border: 1px solid rgba(43, 79, 238, .3);
-  font-size: 11.5px; font-weight: 700; color: var(--brand-2); letter-spacing: .02em;
-  max-width: 100%; white-space: nowrap;
+.acf-lock { flex: none; width: 14px; height: 14px; margin-top: 1px; color: var(--tx-3) }
+.acf-lock svg { width: 14px; height: 14px }
+
+/* the group endorsement, set small and quiet at the very bottom */
+.ac-endorse { margin-top: 26px; color: var(--tx-3); opacity: .6; line-height: 0 }
+.ac-endorse svg { height: 21px; width: auto; max-width: none }
+
+/* ---------- login, wide ---------- */
+@media (min-width: 900px) {
+  .authwrap { align-items: stretch }
+  .authside {
+    display: flex; flex-direction: column; justify-content: space-between;
+    flex: 1 1 52%; max-width: 620px; position: relative; overflow: hidden;
+    background: var(--tx); color: var(--ink);
+    padding: 54px 54px 46px;
+  }
+  /* one oversized brand mark, bled off the corner, at a whisper */
+  .as-wm {
+    position: absolute; right: -13%; bottom: -16%; width: 62%; color: #fff;
+    opacity: .045; pointer-events: none; line-height: 0;
+  }
+  .as-wm svg { width: 100%; height: auto }
+
+  .as-brand { color: #fff; line-height: 0 }
+  .as-brand svg { height: 27px; width: auto; max-width: none }
+  .as-ev {
+    display: inline-flex; align-items: center; gap: 8px; margin-top: 20px;
+    height: 30px; padding: 0 13px; border-radius: var(--r-full);
+    background: rgba(255, 255, 255, .09); border: 1px solid rgba(255, 255, 255, .16);
+    font-family: var(--ff-mono); font-size: 10.5px; font-weight: 700;
+    letter-spacing: .1em; text-transform: uppercase; color: rgba(255, 255, 255, .82);
+    max-width: 100%; white-space: nowrap;
+  }
+  .as-ev svg { width: 13px; height: 13px; flex: none }
+  .as-ev span { overflow: hidden; text-overflow: ellipsis }
+
+  .as-mid { position: relative; padding: 40px 0 }
+  .as-mid h1 {
+    margin: 0; font-size: clamp(38px, 4.1vw, 52px); font-weight: 750;
+    letter-spacing: -.045em; line-height: 1.04; color: #fff;
+  }
+  .as-mid p {
+    margin: 18px 0 0; font-size: 16px; line-height: 1.6; max-width: 34ch;
+    color: rgba(255, 255, 255, .62);
+  }
+
+  .as-list { position: relative; list-style: none; margin: 0; padding: 0; display: grid; gap: 1px }
+  .as-list li {
+    display: flex; align-items: baseline; gap: 14px; padding: 14px 0;
+    border-top: 1px solid rgba(255, 255, 255, .1);
+    font-size: 13.5px; color: rgba(255, 255, 255, .72);
+  }
+  .as-list li:last-child { border-bottom: 1px solid rgba(255, 255, 255, .1) }
+  .as-n {
+    flex: none; font-family: var(--ff-mono); font-size: 10.5px; font-weight: 700;
+    letter-spacing: .08em; color: rgba(255, 255, 255, .34);
+  }
+
+  .authpane { flex: 1 1 48%; background: var(--ink); padding: 48px 40px }
+  .authcard { max-width: 372px }
+  .ac-brand, .ac-lede { display: none }
+  .ac-h { display: block }
+  .ac-h h2 { margin: 0; font-size: 25px; font-weight: 750; letter-spacing: -.032em; line-height: 1.1 }
+  .ac-h p { margin: 7px 0 0; font-size: 13.5px; color: var(--tx-2) }
+  #loginForm { margin-top: 26px }
+  .ac-endorse { margin-top: 22px }
 }
-.auth .evtag .ic { width: 13px; height: 13px }
-.auth .evtag span { overflow: hidden; text-overflow: ellipsis }
-.auth .foot { margin-top: 22px; font-size: 11.5px; color: var(--tx-3); text-align: center; line-height: 1.6 }
 
 /* ============================================================
    TOAST / UNDO
@@ -901,4 +1004,105 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
 /* reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important }
+}
+
+/* ============================================================
+   WIDE SHELL
+   On a laptop the bottom deck becomes a left rail and the app stops
+   pretending to be a phone stretched sideways.
+   ============================================================ */
+@media (min-width: 1000px) {
+  #app {
+    display: grid;
+    grid-template-columns: 268px minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .rail {
+    grid-column: 1; grid-row: 1 / span 2;
+    display: flex; flex-direction: column; gap: 22px;
+    position: sticky; top: 0; height: 100dvh; overflow-y: auto;
+    padding: 26px 18px 22px;
+    background: var(--ink-2); border-right: 1px solid var(--line);
+  }
+
+  .rail-brand {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+    padding: 0 10px; transition: opacity .14s;
+  }
+  .rail-brand:hover { opacity: .72 }
+  .rb-logo { color: var(--tx); line-height: 0 }
+  .rb-logo svg { height: 22px; width: auto; max-width: none }
+  .rb-ev {
+    font-family: var(--ff-mono); font-size: 9px; font-weight: 700;
+    letter-spacing: .16em; text-transform: uppercase; color: var(--tx-3);
+    max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+
+  .tabbar {
+    position: static; height: auto; padding: 0;
+    display: flex; flex-direction: column; align-items: stretch; gap: 2px;
+    background: none; border: 0; box-shadow: none;
+  }
+  .tab {
+    flex: 0 0 auto; flex-direction: row; justify-content: flex-start;
+    gap: 11px; height: 42px; padding: 0 12px; border-radius: 10px;
+    font-size: 13.5px; font-weight: 650; letter-spacing: -.015em;
+    transition: background .15s, color .15s;
+  }
+  .tab > span:first-child {
+    height: 22px; width: 22px; border-radius: 0;
+    background: none !important; color: inherit !important; transform: none !important;
+  }
+  .tab svg { width: 20px; height: 20px }
+  .tab > span:last-child { flex: 0 1 auto }
+  .tab:hover { background: var(--tint); color: var(--tx) }
+  .tab[aria-selected="true"] { background: var(--tx); color: var(--ink-2) }
+  .tab .bdg { position: static; margin: 0 0 0 auto; box-shadow: none }
+
+  /* Scan is the one thing you do standing up, so it leads the rail as a button */
+  .tab.scan {
+    order: -1; height: 46px; margin-bottom: 12px;
+    background: var(--brand); color: #fff; font-size: 14px; font-weight: 700;
+    box-shadow: 0 3px 12px rgba(43, 79, 238, .24);
+  }
+  .tab.scan:hover { background: var(--brand-2); color: #fff }
+  .tab.scan[aria-selected="true"] { background: var(--brand-2); color: #fff }
+  .tab.scan > span:first-child { height: 22px; width: 22px; overflow: visible }
+  .tab.scan .ring {
+    width: 22px; height: 22px; border-radius: 0; margin: 0;
+    background: none; box-shadow: none; color: #fff;
+  }
+  .tab.scan .ring svg { width: 20px; height: 20px }
+  .tab.scan > span:last-child::after { content: ' a card' }
+
+  .rail-foot {
+    display: block; margin-top: auto; padding: 0 10px;
+    color: var(--tx-3); opacity: .5; line-height: 0;
+  }
+  .rail-foot svg { height: 19px; width: auto; max-width: none }
+
+  /* top bar keeps the day rail and status, the brand now lives in the rail */
+  .appbar {
+    grid-column: 2; grid-row: 1;
+    padding: 18px 34px 11px;
+    background: var(--ink); backdrop-filter: none; -webkit-backdrop-filter: none;
+  }
+  #homeBtn { display: none }
+  .appbar-row, .dayrail { max-width: 880px }
+  .appbar-row { gap: 12px }
+
+  main {
+    grid-column: 2; grid-row: 2;
+    margin: 0; max-width: 948px;
+    padding: 24px 34px 72px;
+  }
+
+  .toasts { left: 268px; bottom: 26px }
+  .daychip:hover { border-color: var(--line-2) }
+}
+
+/* the sheet stops behaving like a drawer once there is room for a dialog */
+@media (min-width: 1000px) and (min-height: 640px) {
+  .sheet { max-width: 560px }
 }

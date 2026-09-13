@@ -1,10 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
-  <rect width="32" height="32" rx="7.2" fill="#07090E"/>
-  <g transform="translate(16 16) scale(0.82) translate(-16 -16)" fill="none" stroke="#6E8BFF" stroke-width="2.7" stroke-linecap="round">
-    <path d="M4 11V7a3 3 0 0 1 3-3h4"/>
-    <path d="M21 4h4a3 3 0 0 1 3 3v4"/>
-    <path d="M28 21v4a3 3 0 0 1-3 3h-4"/>
-    <path d="M11 28H7a3 3 0 0 1-3-3v-4"/>
-  </g>
-  <circle cx="16" cy="16" r="3.9" fill="#3B62FF"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><rect width="80" height="80" rx="18" fill="#16130E"/><g transform="translate(9.6 7.75)" fill="#F2F0EB"><svg viewBox="0 0 60.8 64.5" width="60.8" height="64.5"><path id="Path_25039" data-name="Path 25039" d="M29.877,64.48,53.852,13.588a6.794,6.794,0,1,0-4.414-1.778L28.363,56.547,7.489,12.237H17.866l10.51,22.308,12.153-25.8-.68-.755a2.7,2.7,0,0,0-2.027-.956,3.039,3.039,0,0,0-2.092.932L35.6,8.1,28.376,23.4,20.88,7.487H0L26.849,64.48ZM54,4.451a2.367,2.367,0,1,1-2.366,2.367v0A2.369,2.369,0,0,1,54,4.451" transform="translate(0 0)" fill="currentColor"></path></svg></g></svg>
