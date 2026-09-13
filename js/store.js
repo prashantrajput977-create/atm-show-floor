@@ -86,11 +86,36 @@ const LEAD_COLS = '*';
 function setNet(v) { if (S.net !== v) { S.net = v; bus.emit('net'); } }
 
 /* ---------------- auth ---------------- */
+/* Hall wifi drops requests, and on a cold first load the service worker is still
+   precaching while the rep is already typing. A single "Failed to fetch" must not
+   look like a wrong password, so transport errors get three tries with backoff.
+   Real credential rejections (any error carrying an HTTP status) fail straight away. */
 async function signIn(email, password) {
-  const { data, error } = await SB.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
-  if (error) throw error;
-  S.session = data.session;
-  return data;
+  const creds = { email: email.trim().toLowerCase(), password };
+  let last = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt) await new Promise(r => setTimeout(r, attempt * 900));
+    let res;
+    try {
+      res = await SB.auth.signInWithPassword(creds);
+    } catch (e) {
+      last = e;                                   // thrown transport failure
+      continue;
+    }
+    if (!res.error) {
+      S.session = res.data.session;
+      return res.data;
+    }
+    last = res.error;
+    const transport = !res.error.status && /fetch|network|load failed/i.test(res.error.message || '');
+    if (!transport) break;                        // genuine auth rejection
+  }
+  if (last && !last.status && /fetch|network|load failed/i.test(last.message || '')) {
+    const e = new Error('No connection. Check signal and try again.');
+    e.cause = last;
+    throw e;
+  }
+  throw last;
 }
 async function signOut() {
   try { await SB.auth.signOut(); } catch (e) { /* ignore */ }
