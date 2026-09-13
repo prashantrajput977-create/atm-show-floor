@@ -32,7 +32,7 @@ window.CATEGORIES = ['New Business', 'Existing Business', 'Existing + New', 'Exi
 
 /* ---- Icons: 1.8px stroke, 24 grid, currentColor ---- */
 const _i = (p, extra = '') =>
-  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" ${extra}>${p}</svg>`;
+  `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" ${extra}>${p}</svg>`;
 
 window.I = {
   logo: `<svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><g stroke="currentColor" stroke-width="2.7" stroke-linecap="round"><path d="M4 11V7a3 3 0 0 1 3-3h4"/><path d="M21 4h4a3 3 0 0 1 3 3v4"/><path d="M28 21v4a3 3 0 0 1-3 3h-4"/><path d="M11 28H7a3 3 0 0 1-3-3v-4"/></g><circle cx="16" cy="16" r="3.9" fill="#3B62FF"/></svg>`,

@@ -53,6 +53,8 @@ async function enterApp() {
   try { await Store.loadAll(); } catch (e) {
     toast('Could not reach the server. Working from what is on this phone.', { kind: 'warn' });
   }
+  /* nothing on your name: open on the whole team rather than an empty list */
+  if (!S.meetings.some(m => m.owner_id === S.me?.user_id || m.rep_id === S.me?.user_id)) V.scope = 'team';
   renderDayRail(); render(); paintEvent();
   Store.ocrCheck().then(() => { if (V.tab === 'scan' || V.tab === 'me') render(); });
   Store.flush();
@@ -147,6 +149,24 @@ $('#dayrail').addEventListener('click', e => {
   V.day = c.dataset.day;
   renderDayRail(); render();
 });
+/* segmented controls live inside #main, which is re-rendered, so delegate */
+$('#main').addEventListener('click', e => {
+  const s = e.target.closest('[data-scope]');
+  if (s) { V.scope = s.dataset.scope; renderDayRail(); render(); UI.buzz(6); return; }
+  const lf = e.target.closest('[data-lf]');
+  if (lf) { V.leadFilter = lf.dataset.lf; render(); UI.buzz(6); return; }
+  const bd = e.target.closest('[data-bd]');
+  if (bd) { V.boardDay = bd.dataset.bd; render(); UI.buzz(6); return; }
+});
+
+const runQ = UI.debounce(v => {
+  V.q = v;
+  render();
+  const i = $('#leadQ');
+  if (i) { i.focus(); try { i.setSelectionRange(i.value.length, i.value.length); } catch (_) {} }
+}, 240);
+$('#main').addEventListener('input', e => { if (e.target.id === 'leadQ') runQ(e.target.value); });
+
 $('#scrim').onclick = () => closeSheet();
 $('#sheetX').onclick = () => closeSheet();
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
