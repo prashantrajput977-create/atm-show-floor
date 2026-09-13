@@ -486,7 +486,7 @@ function viewBoard() {
   ${sourceBlock(mtgs, leads)}
 
   ${lbBlock('On the floor', 'Who took the meeting and logged the call', floor, false)}
-  ${lbBlock('Booked the room', 'Meetings they set up, and what those turned into', booked, true)}
+  ${lbBlock('IS reps', 'Meetings they set up, and what those turned into', booked, true)}
 
   ${barBlock('Where the demand sits', regions)}
   ${barBlock('Business mix', cats)}

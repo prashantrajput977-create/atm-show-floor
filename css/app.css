@@ -201,16 +201,22 @@ a { color: var(--brand-2); text-decoration: none; }
 /* the selected day is unmistakable: solid ink fill, not a pale tint */
 .daychip {
   flex: none; min-width: 60px; padding: 6px 11px 7px;
-  border-radius: var(--r-sm); border: 1px solid transparent;
-  background: transparent; text-align: left;
-  transition: background .16s, transform .1s, border-color .16s;
+  border-radius: var(--r-sm); border: 1px solid var(--ctl-edge);
+  background: var(--surf); text-align: left; box-shadow: var(--sh-ctl);
+  transition: background .16s, transform .08s, border-color .16s, box-shadow .16s;
 }
-.daychip:active { transform: scale(.97) }
+.daychip:hover { background: var(--surf-2); border-color: var(--tx-3); box-shadow: var(--sh-ctl-h) }
+.daychip:active { transform: translateY(1px); box-shadow: none; background: var(--surf-3) }
+.daychip:focus-visible { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-dim) }
 .daychip .dc-1 { font-family: var(--ff-mono); font-size: 9px; font-weight: 700; letter-spacing: .12em; color: var(--tx-3); text-transform: uppercase; }
 .daychip .dc-2 { font-size: 17px; font-weight: 700; letter-spacing: -.04em; line-height: 1.1; margin-top: 2px; color: var(--tx-2); font-family: var(--ff-mono) }
 .daychip .dc-3 { font-size: 9.5px; color: var(--tx-3); margin-top: 2px; font-weight: 600; }
-.daychip[aria-selected="false"] { border-color: var(--line) }
-.daychip[aria-selected="true"] { background: var(--tx); border-color: var(--tx) }
+.daychip[aria-selected="false"] { border-color: var(--ctl-edge) }
+.daychip[aria-selected="true"] {
+  background: var(--tx); border-color: var(--tx);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .14) inset, 0 2px 7px rgba(22, 19, 14, .2);
+}
+.daychip[aria-selected="true"]:hover { background: #241F17; border-color: #241F17 }
 .daychip[aria-selected="true"] .dc-1,
 .daychip[aria-selected="true"] .dc-3 { color: rgba(255, 255, 255, .62) }
 .daychip[aria-selected="true"] .dc-2 { color: #fff }
@@ -328,7 +334,7 @@ main {
 }
 .btn.primary:active { background: #1633AF; box-shadow: 0 1px 3px rgba(43, 79, 238, .3) inset }
 
-.btn.ghost { background: var(--surf); border-color: var(--line-2); color: var(--tx-2); box-shadow: none }
+.btn.ghost { background: var(--surf); border-color: var(--ctl-edge); color: var(--tx-2); box-shadow: var(--sh-ctl) }
 .btn.ghost:hover { color: var(--tx); border-color: var(--ctl-edge); background: var(--surf-2); box-shadow: var(--sh-ctl) }
 
 .btn.danger {
@@ -803,7 +809,7 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
 /* how it came in: a small table, read left to right */
 .srcs { padding: 3px 0 }
 .srow {
-  display: grid; grid-template-columns: minmax(0, 1fr) repeat(4, 46px);
+  display: grid; grid-template-columns: minmax(0, 1fr) repeat(4, 62px);
   align-items: center; gap: 8px;
   padding: 10px 13px; border-bottom: 1px solid var(--line);
 }
@@ -1269,6 +1275,9 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
     letter-spacing: -.034em; color: var(--tx);
   }
   .appbar-row, .dayrail { max-width: 880px }
+
+  /* a standalone action gets a button-sized footprint, not the whole column */
+  main .page > .btn.block { width: auto; min-width: 262px }
   .appbar-row { gap: 12px }
 
   main {
