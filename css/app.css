@@ -1333,12 +1333,6 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
   }
   .rail > * { position: relative; z-index: 1 }
   /* the partner marks keep a paper cushion so they never sit on the water */
-  .rail-foot {
-    position: relative;
-    margin: auto -18px -22px; padding: 26px 28px 22px;
-    background: linear-gradient(to bottom, rgba(249, 248, 244, 0), rgba(249, 248, 244, .9) 58%);
-  }
-
   .rail-brand {
     display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
     padding: 0 10px; transition: opacity .14s;
@@ -1388,9 +1382,12 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
   .tab.scan .ring svg { width: 20px; height: 20px }
   .tab.scan > span:last-child::after { content: ' a card' }
 
+  /* the partner marks get a paper cushion so they never sit on the water */
   .rail-foot {
-    display: block; margin-top: auto; padding: 0 10px;
+    display: block; position: relative;
+    margin: auto -18px -22px -18px; padding: 30px 28px 22px;
     color: var(--tx-3); opacity: .5; line-height: 0;
+    background: linear-gradient(to bottom, rgba(249, 248, 244, 0), rgba(249, 248, 244, .9) 58%);
   }
   .rail-foot svg { height: 22px; width: auto; max-width: none }
 
