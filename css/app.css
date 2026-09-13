@@ -244,7 +244,7 @@ main {
   padding: 3px 1px 0;
 }
 /* every tab's icon box is the same height, so the labels share one baseline */
-.tab > span:first-child {
+.tab:not(.scan) > span:first-child {
   height: 28px; width: 34px; border-radius: 9px; display: grid; place-items: center;
   transition: background .18s, color .18s;
 }
@@ -252,7 +252,7 @@ main {
 .tab > span:last-child { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
 /* the active tab gets a filled ink chip, which holds its weight at a glance */
 .tab[aria-selected="true"] { color: var(--tx); }
-.tab[aria-selected="true"] > span:first-child { background: var(--tx); color: var(--ink-2); }
+.tab[aria-selected="true"]:not(.scan) > span:first-child { background: var(--tx); color: var(--ink-2); }
 .tab:not(.scan):active > span:first-child { transform: scale(.9) }
 .tab .bdg {
   position: absolute; top: 2px; left: 50%; margin-left: 7px;
@@ -264,7 +264,7 @@ main {
 /* Seven tabs puts Scan in slot four: the true centre of the bar. Three columns
    each side, so the raised button sits on the bar's axis rather than near it. */
 .tab.scan { flex: 0 0 64px }
-.tab.scan > span:first-child { height: 28px; width: auto; overflow: visible; background: none !important }
+.tab.scan { overflow: visible }
 .tab.scan .ring {
   width: 46px; height: 46px; border-radius: var(--r-full); display: grid; place-items: center;
   background: var(--brand); color: #fff;
@@ -475,7 +475,8 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
 .wkscan .ws-t { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 3px }
 .wkscan .ws-t b { font-size: 15px; font-weight: 750; letter-spacing: -.02em; color: var(--tx) }
 .wkscan .ws-t i { font-style: normal; font-size: 12px; color: var(--tx-2); line-height: 1.4 }
-.wkscan > svg { width: 17px; height: 17px; flex: none; color: var(--tx-3); transform: rotate(-90deg) }
+.wkscan > svg { width: 17px; height: 17px; flex: none; color: var(--tx-3) }
+.vtitle { display: none }
 
 .wkalt { display: flex; gap: 8px; margin-top: 8px }
 .wkalt button {
@@ -908,7 +909,7 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
 
 /* the group endorsement, set small and quiet at the very bottom */
 .ac-endorse { margin-top: 26px; color: var(--tx-3); opacity: .6; line-height: 0 }
-.ac-endorse svg { height: 21px; width: auto; max-width: none }
+.ac-endorse svg { height: 26px; width: auto; max-width: none }
 
 /* ---------- login, wide ---------- */
 @media (min-width: 900px) {
@@ -921,8 +922,8 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
   }
   /* one oversized brand mark, bled off the corner, at a whisper */
   .as-wm {
-    position: absolute; right: -13%; bottom: -16%; width: 62%; color: #fff;
-    opacity: .045; pointer-events: none; line-height: 0;
+    position: absolute; right: -7%; bottom: 16%; width: 40%; color: #fff;
+    opacity: .03; pointer-events: none; line-height: 0;
   }
   .as-wm svg { width: 100%; height: auto }
 
@@ -1050,7 +1051,7 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
     font-size: 13.5px; font-weight: 650; letter-spacing: -.015em;
     transition: background .15s, color .15s;
   }
-  .tab > span:first-child {
+  .tab:not(.scan) > span:first-child {
     height: 22px; width: 22px; border-radius: 0;
     background: none !important; color: inherit !important; transform: none !important;
   }
@@ -1068,7 +1069,6 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
   }
   .tab.scan:hover { background: var(--brand-2); color: #fff }
   .tab.scan[aria-selected="true"] { background: var(--brand-2); color: #fff }
-  .tab.scan > span:first-child { height: 22px; width: 22px; overflow: visible }
   .tab.scan .ring {
     width: 22px; height: 22px; border-radius: 0; margin: 0;
     background: none; box-shadow: none; color: #fff;
@@ -1080,7 +1080,7 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
     display: block; margin-top: auto; padding: 0 10px;
     color: var(--tx-3); opacity: .5; line-height: 0;
   }
-  .rail-foot svg { height: 19px; width: auto; max-width: none }
+  .rail-foot svg { height: 22px; width: auto; max-width: none }
 
   /* top bar keeps the day rail and status, the brand now lives in the rail */
   .appbar {
@@ -1089,6 +1089,10 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
     background: var(--ink); backdrop-filter: none; -webkit-backdrop-filter: none;
   }
   #homeBtn { display: none }
+  .vtitle {
+    display: block; margin: 0; font-size: 20px; font-weight: 750;
+    letter-spacing: -.034em; color: var(--tx);
+  }
   .appbar-row, .dayrail { max-width: 880px }
   .appbar-row { gap: 12px }
 

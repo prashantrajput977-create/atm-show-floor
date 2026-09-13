@@ -1137,6 +1137,9 @@ function render() {
   main.innerHTML = `<div class="page">${fn()}</div>`;
   hydrateThumbs();
   UI.$$('.tab').forEach(t => t.setAttribute('aria-selected', String(t.dataset.t === V.tab)));
+  const titles = { today: 'Today', agenda: 'All days', leads: 'Leads', walkins: 'Walk-ins', scan: 'Scan a card', board: 'Team board', me: 'You' };
+  const vt = UI.$('#viewTitle');
+  if (vt) vt.textContent = titles[V.tab] || 'Today';
   UI.$('#dayrail').hidden = !(V.tab === 'today' || V.tab === 'board');
 
   const badge = S.meetings.filter(m => isMine(m) && !m.outcome && m.meeting_date === UI.nowInTz().date).length;
