@@ -231,6 +231,51 @@ document.addEventListener('click', async e => {
       location.reload();
     },
     lead: () => Views.openLead(id),
+    resetMeeting: async () => {
+      const m = S.meetings.find(x => x.id === id);
+      if (!m) return;
+      const prev = { outcome: m.outcome, status: m.status, deal_value_usd: m.deal_value_usd, next_step: m.next_step, next_step_due: m.next_step_due, outcome_notes: m.outcome_notes, met_at: m.met_at };
+      closeSheet();
+      await Store.updateMeeting(id, { ...Store.CLEAR, updated_at: new Date().toISOString() },
+        { activity: { kind: 'reset', summary: `reset the record for ${m.company_name}` } });
+      toast(`${m.company_name} is back to unlogged`, {
+        action: 'Undo',
+        onAction: () => Store.updateMeeting(id, { ...prev, updated_at: new Date().toISOString() })
+          .then(() => { toast('Restored'); render(); })
+      });
+      render();
+    },
+    delMeeting: async () => {
+      const m = S.meetings.find(x => x.id === id);
+      if (!m) return;
+      const ok = await UI.confirmSheet({
+        title: 'Delete this record?', sub: m.company_name, danger: true, ok: 'Delete',
+        body: `<p class="hint" style="margin:0">This removes the meeting and unlinks any card captured against it. The cards themselves stay in Leads. This cannot be undone.</p>`
+      });
+      if (!ok) return;
+      await Store.deleteMeeting(id);
+      closeSheet(); toast('Record deleted', { kind: 'ok' }); render(); Views.renderDayRail();
+    },
+    resetEvent: async () => {
+      const added = S.meetings.filter(m => (m.source || 'sheet') !== 'sheet').length;
+      const logged = S.meetings.filter(m => m.outcome || m.status !== 'scheduled').length;
+      const ok = await UI.confirmSheet({
+        title: 'Reset the event records?', sub: UI.activeEvent()?.name || '', danger: true, ok: 'Reset everything',
+        body: `<p class="hint" style="margin:0 0 12px">Use this after a practice run. It clears what the team logged and leaves the booked sheet in place.</p>
+          <div class="card" style="padding:4px 13px">
+            <div class="drow"><span class="di">${I.undo}</span><span class="dv"><span class="k">Outcomes cleared</span><span class="v">${logged} meeting${logged === 1 ? '' : 's'} back to unlogged</span></span></div>
+            <div class="drow"><span class="di">${I.trash}</span><span class="dv"><span class="k">Records deleted</span><span class="v">${added} walk-in${added === 1 ? '' : 's'} and added meeting${added === 1 ? '' : 's'}</span></span></div>
+            <div class="drow"><span class="di">${I.card}</span><span class="dv"><span class="k">Contacts deleted</span><span class="v">${S.leads.length} card${S.leads.length === 1 ? '' : 's'}</span></span></div>
+            <div class="drow"><span class="di">${I.calendar}</span><span class="dv"><span class="k">Kept</span><span class="v">All ${S.meetings.length - added} booked meetings and everyone's login</span></span></div>
+          </div>
+          <p class="hint" style="margin:12px 0 0;color:var(--dead)">This cannot be undone.</p>`
+      });
+      if (!ok) return;
+      toast('Resetting the event');
+      const r = await Store.resetEvent();
+      V.tab = 'board'; render(); Views.renderDayRail(); refreshCounters();
+      toast(`Reset done. ${r.cleared} outcome${r.cleared === 1 ? '' : 's'} cleared, ${r.added + r.leads} record${r.added + r.leads === 1 ? '' : 's'} removed.`, { kind: 'ok' });
+    },
     editLead: () => Views.openEditLead(id),
     editMeeting: () => Views.openEditMeeting(id),
     addMeeting: () => Views.openAddMeeting(),
@@ -244,14 +289,14 @@ document.addEventListener('click', async e => {
     team: () => Views.openTeam(),
     linkMeeting: () => Views.openLinkMeeting(id),
     goScan: () => { V.tab = 'scan'; render(); renderDayRail(); },
-    camera: () => { pendingScanMeeting = null; pendingWalkin = false; $('#camPick').click(); },
+    camera: () => { pendingScanMeeting = null; pendingWalkin = false; openCamera(); },
     upload: () => { pendingScanMeeting = null; pendingWalkin = false; $('#filePick').click(); },
     manual: () => openReview({ fields: OCR.normalize({}), engine: 'manual' }, null),
     /* scanning from the Walk-ins tab logs the meeting too, not just the contact */
-    scanWalkin: () => { pendingScanMeeting = null; pendingWalkin = true; $('#camPick').click(); },
+    scanWalkin: () => { pendingScanMeeting = null; pendingWalkin = true; openCamera(); },
     uploadWalkin: () => { pendingScanMeeting = null; pendingWalkin = true; $('#filePick').click(); },
     manualWalkinCard: () => { pendingWalkin = true; openReview({ fields: OCR.normalize({}), engine: 'manual' }, null); },
-    scanFor: () => { pendingScanMeeting = id; closeSheet(); $('#camPick').click(); },
+    scanFor: () => { pendingScanMeeting = id; closeSheet(); openCamera(); },
     clearQ: () => { V.q = ''; render(); },
     copy: () => UI.copy(el.dataset.v, 'Copied'),
     install: doInstall,
@@ -292,7 +337,14 @@ document.addEventListener('click', async e => {
       closeSheet(); render();
     },
     rate: async () => {
-      await Store.updateLead(id, { interest: el.dataset.v, updated_at: new Date().toISOString() });
+      const l = S.leads.find(x => x.id === id);
+      /* tapping the one already chosen clears it, so a misclick is one tap to fix */
+      const v = l && l.interest === el.dataset.v ? null : el.dataset.v;
+      await Store.updateLead(id, { interest: v, updated_at: new Date().toISOString() });
+      if (!v) {
+        el.parentElement.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', 'false'));
+        toast('Outcome cleared'); render(); return;
+      }
       el.parentElement.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b === el)));
       toast(`Rated ${OUT_MAP[el.dataset.v].label.toLowerCase()}`, { kind: 'ok' });
       render();
@@ -372,6 +424,102 @@ document.addEventListener('input', UI.debounce(e => {
     busy = false;
   }, { passive: true });
 })();
+
+/* ---------------- live camera ----------------
+   The native file input with capture=environment does nothing on a laptop, so
+   every camera entry point now opens a real viewfinder via getUserMedia and only
+   falls back to the file picker when there is no camera or no permission. */
+let camStream = null, camDevs = [], camIdx = 0, camFacing = 'environment';
+
+function stopCam() {
+  if (camStream) camStream.getTracks().forEach(t => t.stop());
+  camStream = null;
+}
+
+async function attachCam(deviceId) {
+  stopCam();
+  const want = deviceId
+    ? { deviceId: { exact: deviceId }, width: { ideal: 1920 }, height: { ideal: 1440 } }
+    : { facingMode: { ideal: camFacing }, width: { ideal: 1920 }, height: { ideal: 1440 } };
+  camStream = await navigator.mediaDevices.getUserMedia({ video: want, audio: false });
+  const v = $('#camV');
+  if (!v) { stopCam(); return; }
+  v.srcObject = camStream;
+  await v.play().catch(() => {});
+  const track = camStream.getVideoTracks()[0];
+  const facing = track.getSettings ? track.getSettings().facingMode : null;
+  /* the front camera shows a mirrored preview, which is what people expect of a
+     mirror but confusing when you are lining up text, so only flip the preview */
+  v.classList.toggle('mir', facing === 'user' || (!facing && camFacing === 'user'));
+  const label = $('#camLbl');
+  if (label) label.textContent = track.label ? track.label.replace(/\s*\(.*\)$/, '') : 'Camera';
+}
+
+async function openCamera() {
+  if (!navigator.mediaDevices?.getUserMedia) return $('#camPick').click();
+
+  openSheet({
+    title: 'Scan a card', sub: 'Fill the frame, then shoot',
+    body: `<div class="camwrap">
+        <video id="camV" playsinline autoplay muted></video>
+        <div class="camguide"><span></span></div>
+        <div class="camtop"><span class="campill" id="camLbl">Starting the camera</span></div>
+      </div>
+      <p class="hint" id="camHint" style="margin:10px 2px 0">Landscape works best. Keep the whole card inside the frame.</p>`,
+    foot: `<button class="btn ghost" id="camSwap" title="Switch camera">${I.refresh}Switch</button>
+           <button class="btn primary" id="camShot" disabled>${I.camera}Capture</button>`,
+    onMount(b, f) {
+      const shot = f.querySelector('#camShot'), swap = f.querySelector('#camSwap');
+
+      navigator.mediaDevices.enumerateDevices()
+        .then(ds => {
+          camDevs = ds.filter(d => d.kind === 'videoinput');
+          if (camDevs.length < 2) swap.style.display = 'none';
+        })
+        .catch(() => { swap.style.display = 'none'; });
+
+      attachCam().then(() => { shot.disabled = false; }).catch(err => {
+        stopCam();
+        const denied = err && /NotAllowed|Permission/i.test(err.name + err.message);
+        b.querySelector('.camwrap').innerHTML =
+          `<div class="camfail">${I.alert}<span>${denied
+            ? 'Your browser blocked the camera. Allow it in the address bar, or pick a photo instead.'
+            : 'No camera found on this device.'}</span></div>`;
+        const h = b.querySelector('#camHint');
+        if (h) h.remove();
+        swap.style.display = 'none';
+        shot.disabled = false;
+        shot.innerHTML = `${I.image}Pick a photo`;
+        shot.onclick = () => { closeSheet(); $('#filePick').click(); };
+      });
+
+      swap.onclick = async () => {
+        shot.disabled = true;
+        camFacing = camFacing === 'environment' ? 'user' : 'environment';
+        try {
+          if (camDevs.length > 1) { camIdx = (camIdx + 1) % camDevs.length; await attachCam(camDevs[camIdx].deviceId); }
+          else await attachCam();
+        } catch (e) { toast('Could not switch camera', { kind: 'bad' }); }
+        shot.disabled = false;
+      };
+
+      shot.onclick = () => {
+        const v = $('#camV');
+        if (!v || !v.videoWidth) return toast('Camera is still starting', { kind: 'bad' });
+        const c = document.createElement('canvas');
+        c.width = v.videoWidth; c.height = v.videoHeight;
+        c.getContext('2d').drawImage(v, 0, 0);
+        UI.buzz(16);
+        c.toBlob(blob => {
+          if (!blob) return toast('Capture failed. Try again.', { kind: 'bad' });
+          stopCam();
+          runScan(new File([blob], 'card.jpg', { type: 'image/jpeg' }));
+        }, 'image/jpeg', 0.92);
+      };
+    },
+    onClose: stopCam
+  });
+}
 
 /* ---------------- scan flow ---------------- */
 ['#camPick', '#filePick'].forEach(sel => {
@@ -511,7 +659,7 @@ function openReview(res, mtgId) {
         closeSheet();
         /* closing resets the flags, so carry the walk-in intent through a retake */
         pendingWalkin = asWalkin;
-        $('#camPick').click();
+        openCamera();
       };
 
       ft.querySelector('[data-x]').onclick = async () => {

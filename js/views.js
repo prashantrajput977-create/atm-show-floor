@@ -419,7 +419,7 @@ function viewScan() {
   <div class="scanhero">
     <div class="ill">${I.card}</div>
     <h2>Scan a business card</h2>
-    <p>Point the camera at the card. Name, title, company, email and phone come back filled in, ready for you to check.</p>
+    <p>Point the camera at the card. Name, title, company, email and phone come back filled in, ready for you to check. Works on your laptop webcam too.</p>
     <div class="acts">
       <button class="btn primary block" data-act="camera">${I.camera}Open camera</button>
       <button class="btn ghost block" data-act="upload">${I.image}Pick from photos</button>
@@ -836,6 +836,7 @@ function viewMe() {
     <div style="display:flex;flex-direction:column;gap:9px">
       <button class="btn block" data-act="addMeeting">${I.plus}Add a walk-in meeting</button>
       <button class="btn block" data-act="addEvent">${I.calendar}Create a new event</button>
+      ${me.role !== 'rep' ? `<button class="btn danger block" data-act="resetEvent">${I.undo}Reset the event records</button>` : ''}
       <button class="btn block" data-act="export">${I.download}Export to CSV</button>
       ${canInstall ? `<button class="btn primary block" data-act="install">${I.upload}Install on this phone</button>` : ''}
       <button class="btn ghost block" data-act="refresh">${I.refresh}Refresh from server</button>
@@ -898,6 +899,7 @@ function openMeeting(id) {
         <button class="btn" style="flex:1" data-act="scanFor" data-id="${m.id}">${I.card}Scan card</button>
         <button class="btn" style="flex:1" data-act="editMeeting" data-id="${m.id}">${I.edit}Edit</button>
       </div>
+      ${isDone(m) || m.outcome_notes ? `<button class="btn ghost block" data-act="resetMeeting" data-id="${m.id}">${I.undo}Reset this record</button>` : ''}
     </div>
 
     <div class="card" style="padding:4px 13px;margin-bottom:16px">
@@ -920,8 +922,7 @@ function openMeeting(id) {
 
     <div class="sec-h"><h2>Cards from this meeting</h2><span class="count">${ls.length}</span></div>
     ${ls.length ? ls.map(leadCard).join('') : `<div class="hint" style="padding:4px 2px 12px">No card captured yet.</div>`}
-
-`;
+    ${(m.source || 'sheet') !== 'sheet' ? `<button class="btn danger block" style="margin-top:10px" data-act="delMeeting" data-id="${m.id}">${I.trash}Delete this ${m.source === 'walkin' ? 'walk-in' : 'meeting'}</button>` : ''}`;
 
   UI.openSheet({ title: m.company_name, sub: [m.prospect_name, m.geo_region].filter(Boolean).join(' · ') || UI.fmtDate(m.meeting_date), body });
   hydrateThumbs();
@@ -989,7 +990,7 @@ function openOutcome(id, jump) {
     title: 'Did they turn up?',
     sub: m.company_name,
     body: stepOne(),
-    foot: `<button class="btn ghost" data-x>Cancel</button><button class="btn primary" data-go disabled>Continue</button>`,
+    foot: `${m.outcome || m.status !== 'scheduled' ? '<button class="btn danger" data-clear>Reset</button>' : '<button class="btn ghost" data-x>Cancel</button>'}<button class="btn primary" data-go disabled>Continue</button>`,
     onMount(b, f) {
       const keep = () => {
         const g = k => b.querySelector(k);
@@ -1068,7 +1069,21 @@ function openOutcome(id, jump) {
         render();
       };
 
-      f.querySelector('[data-x]').onclick = () => UI.closeSheet();
+      const xb = f.querySelector('[data-x]');
+      if (xb) xb.onclick = () => UI.closeSheet();
+      const cb = f.querySelector('[data-clear]');
+      if (cb) cb.onclick = async () => {
+        const prev = { outcome: m.outcome, status: m.status, deal_value_usd: m.deal_value_usd, next_step: m.next_step, next_step_due: m.next_step_due, outcome_notes: m.outcome_notes, met_at: m.met_at };
+        UI.closeSheet();
+        await Store.updateMeeting(m.id, { ...Store.CLEAR, updated_at: new Date().toISOString() },
+          { activity: { kind: 'reset', summary: `reset the record for ${m.company_name}` } });
+        UI.toast(`${m.company_name} is back to unlogged`, {
+          action: 'Undo',
+          onAction: () => Store.updateMeeting(m.id, { ...prev, updated_at: new Date().toISOString() })
+            .then(() => { UI.toast('Restored'); render(); })
+        });
+        render();
+      };
       if (step === 2) paint(); else bind();
     }
   });

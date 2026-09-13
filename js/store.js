@@ -367,6 +367,9 @@ async function runJob(j) {
   } else if (j.kind === 'lead_update') {
     const { error } = await SB.from('ev_leads').update(j.values).eq('id', j.id2);
     if (error) throw error;
+  } else if (j.kind === 'meeting_delete') {
+    const { error } = await SB.from('ev_meetings').delete().eq('id', j.id2);
+    if (error) throw error;
   } else if (j.kind === 'lead_delete') {
     const { error } = await SB.from('ev_leads').delete().eq('id', j.id2);
     if (error) throw error;
@@ -467,6 +470,41 @@ async function updateLead(id, values) {
   return l;
 }
 
+async function deleteMeeting(id) {
+  S.meetings = S.meetings.filter(m => m.id !== id);
+  S.leads.forEach(l => { if (l.meeting_id === id) l.meeting_id = null; });
+  bus.emit('data'); saveSnapshot();
+  await enqueue({ kind: 'meeting_delete', id2: id });
+  flush();
+}
+
+/* Wipes everything the team logged at this event and leaves the booked sheet
+   standing. Used after a practice run, so it has to be exact about scope. */
+const CLEAR = {
+  outcome: null, status: 'scheduled', deal_value_usd: null, met_at: null,
+  next_step: null, next_step_due: null, outcome_notes: null
+};
+
+async function resetEvent() {
+  const added = S.meetings.filter(m => (m.source || 'sheet') !== 'sheet').map(m => m.id);
+  const booked = S.meetings.filter(m => (m.source || 'sheet') === 'sheet');
+  const leadIds = S.leads.map(l => l.id);
+
+  for (const l of leadIds) await deleteLead(l);
+  for (const id of added) await deleteMeeting(id);
+  let cleared = 0;
+  for (const m of booked) {
+    if (!m.outcome && m.status === 'scheduled' && !m.outcome_notes) continue;
+    await updateMeeting(m.id, { ...CLEAR, updated_at: new Date().toISOString() });
+    cleared++;
+  }
+  S.activity = [];
+  bus.emit('data'); saveSnapshot();
+  log('event_reset', `reset the event records, removed ${added.length + leadIds.length} added record${added.length + leadIds.length === 1 ? '' : 's'}`);
+  flush();
+  return { added: added.length, leads: leadIds.length, cleared };
+}
+
 async function deleteLead(id) {
   S.leads = S.leads.filter(l => l.id !== id);
   bus.emit('data'); saveSnapshot();
@@ -537,5 +575,5 @@ window.Store = {
   SB, bus, S, IDB, uuid,
   signIn, signOut, getSession, loadMe, loadAll, loadEventData, resume, switchEvent,
   updateMeeting, addMeeting, saveLead, updateLead, deleteLead, addEvent, log,
-  flush, thumb, ocrCheck, ocrRemote
+  flush, thumb, ocrCheck, ocrRemote, deleteMeeting, resetEvent, CLEAR
 };

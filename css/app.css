@@ -1413,3 +1413,73 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
 .rt-bar i.t-hot { background: var(--hot) }
 .rt-bar i.t-dead { background: var(--dead) }
 .rt-bar i.t-mute { background: var(--line-2) }
+
+/* ---------- live camera ---------- */
+.camwrap {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--r);
+  overflow: hidden;
+  background: #16130E;
+  border: 1px solid var(--line-2);
+}
+.camwrap video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.camwrap video.mir { transform: scaleX(-1); }
+.camguide {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+.camguide span {
+  width: 82%;
+  aspect-ratio: 85 / 55;
+  border: 2px dashed rgba(255, 255, 255, .62);
+  border-radius: 10px;
+  box-shadow: 0 0 0 2000px rgba(22, 19, 14, .28);
+}
+.camtop {
+  position: absolute;
+  top: 9px;
+  left: 9px;
+  right: 9px;
+  display: flex;
+  pointer-events: none;
+}
+.campill {
+  font: 500 11px/1 var(--ff-mono);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: #fff;
+  background: rgba(22, 19, 14, .58);
+  border: 1px solid rgba(255, 255, 255, .18);
+  padding: 6px 9px;
+  border-radius: var(--r-full);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.camfail {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 10px;
+  padding: 22px;
+  text-align: center;
+  color: #F2F0EB;
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+.camfail svg { width: 22px; height: 22px; color: var(--hot); }
+@media (min-width: 1000px) {
+  .camwrap { aspect-ratio: 16 / 10; }
+}
