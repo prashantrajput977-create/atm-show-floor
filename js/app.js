@@ -1275,10 +1275,40 @@ window.__installPrompt = null;
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); window.__installPrompt = e; });
 async function doInstall() {
   const p = window.__installPrompt;
-  if (!p) return toast('Use your browser menu, then Add to Home Screen.', { ms: 5000 });
-  p.prompt();
-  const { outcome } = await p.userChoice;
-  if (outcome === 'accepted') { window.__installPrompt = null; toast('Installed', { kind: 'ok' }); render(); }
+  if (p) {
+    p.prompt();
+    const { outcome } = await p.userChoice;
+    if (outcome === 'accepted') { window.__installPrompt = null; toast('Installed', { kind: 'ok' }); render(); }
+    return;
+  }
+  /* Safari has no prompt to fire, so show the three taps instead of a toast
+     that scrolls away before anyone has read it. */
+  const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const safari = /Safari/.test(navigator.userAgent) && !/CriOS|FxiOS|EdgiOS|OPiOS/.test(navigator.userAgent);
+  const steps = ios ? [
+    [I.share, 'Tap the share button', 'The square with the arrow, in the Safari bar at the bottom of your screen.'],
+    [I.plus, 'Choose Add to Home Screen', 'Scroll down the list of options to find it.'],
+    [I.home, 'Tap Add', 'Showdown lands on your home screen. Open it from there, not from Safari.']
+  ] : [
+    [I.grid, 'Open the browser menu', 'The three dots in the corner of your browser.'],
+    [I.plus, 'Choose Install app', 'Some phones call it Add to Home Screen.'],
+    [I.home, 'Confirm', 'Showdown lands on your home screen. Open it from there.']
+  ];
+  UI.openSheet({
+    title: 'Add Showdown to your home screen',
+    sub: 'It runs full screen and works offline',
+    body: `
+      ${ios && !safari ? `<div class="hint bad" style="margin-bottom:12px">You are not in Safari. Open this page in Safari first, iPhones can only add to the home screen from there.</div>` : ''}
+      <ol class="steps">
+        ${steps.map(([icon, h, p2], i) => `<li>
+          <span class="sn">${i + 1}</span>
+          <span class="st"><span class="sh">${icon}${esc(h)}</span><span class="sp">${esc(p2)}</span></span>
+        </li>`).join('')}
+      </ol>`,
+    foot: `<button class="btn primary" data-x>Got it</button>`,
+    onMount(b2, f2) { f2.querySelector('[data-x]').onclick = () => UI.closeSheet(); }
+  });
 }
 
 /* ---------------- service worker ---------------- */

@@ -871,7 +871,9 @@ function viewMe() {
   const myLeads = S.leads.filter(l => l.captured_by === meId());
   const ev = UI.activeEvent();
   const byDay = eventDays().map(d => ({ d, n: mine.filter(m => m.meeting_date === d).length, l: mine.filter(m => m.meeting_date === d && isDone(m)).length }));
-  const canInstall = !!window.__installPrompt;
+  /* iPhones never fire an install prompt, so the button cannot wait for one.
+     It shows until the app is genuinely running from the home screen. */
+  const installed = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 
   return `
   <div class="card" style="padding:16px;display:flex;gap:13px;align-items:center;margin-bottom:16px">
@@ -934,7 +936,7 @@ function viewMe() {
       <button class="btn block" data-act="addMeeting">${I.plus}Add a walk-in meeting</button>
       <button class="btn block" data-act="addEvent">${I.calendar}Create a new event</button>
       <button class="btn block" data-act="export">${I.download}Export to CSV</button>
-      ${canInstall ? `<button class="btn primary block" data-act="install">${I.upload}Install on this phone</button>` : ''}
+      ${installed ? '' : `<button class="btn primary block" data-act="install">${I.home}Add to home screen</button>`}
       <button class="btn ghost block" data-act="refresh">${I.refresh}Refresh from server</button>      ${me.role !== 'rep' ? `<button class="btn danger block" data-act="resetEvent">${I.undo}Reset the event records</button>` : ''}
     </div>
   </div>

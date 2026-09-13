@@ -1,7 +1,7 @@
 /* Vervotech Showdown — configuration + icon set */
 
 window.APP_NAME = 'Vervotech Showdown';
-window.BUILD = '57';
+window.BUILD = '58';
 window.CFG = {
   supabaseUrl: 'https://fofmpvgbeoxslpiegxql.supabase.co',
   supabaseKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZvZm1wdmdiZW94c2xwaWVneHFsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4OTE4MTksImV4cCI6MjA5MzQ2NzgxOX0.2z6pMAf4kY5sufnSiXlPjvKNnbmVqG4hiHkS-jjnwpo',
@@ -100,6 +100,9 @@ window.I = {
   camera: _i('<path d="M21.2 17.4a2.2 2.2 0 0 1-2.2 2.2H5a2.2 2.2 0 0 1-2.2-2.2V9.6A2.2 2.2 0 0 1 5 7.4h2.4l1.4-2.2h6.4l1.4 2.2H19a2.2 2.2 0 0 1 2.2 2.2Z"/><circle cx="12" cy="13" r="3.4"/>'),
   image: _i('<rect x="3" y="3.6" width="18" height="16.8" rx="2.4"/><circle cx="8.6" cy="9.4" r="1.8"/><path d="m3.4 17.6 4.8-4.8 3.4 3.4 3.2-3.2 5.2 5.2"/>'),
   upload: _i('<path d="M20.4 15.4v3.2a2 2 0 0 1-2 2H5.6a2 2 0 0 1-2-2v-3.2M8 8.4 12 4.4l4 4M12 4.4v11"/>'),
+  /* the iOS share glyph, so the steps point at the button they must tap */
+  share: _i('<path d="M12 3.4v12.2M8.4 7 12 3.4 15.6 7"/><path d="M7.2 10.4H6a1.8 1.8 0 0 0-1.8 1.8v6.6A1.8 1.8 0 0 0 6 20.6h12a1.8 1.8 0 0 0 1.8-1.8v-6.6a1.8 1.8 0 0 0-1.8-1.8h-1.2"/>'),
+  home: _i('<path d="M4 10.2 12 3.6l8 6.6V19a1.6 1.6 0 0 1-1.6 1.6H5.6A1.6 1.6 0 0 1 4 19z"/><path d="M9.6 20.6v-6.4h4.8v6.4"/>'),
   download: _i('<path d="M20.4 15.4v3.2a2 2 0 0 1-2 2H5.6a2 2 0 0 1-2-2v-3.2M8 11.4l4 4 4-4M12 15.4v-11"/>'),
   refresh: _i('<path d="M20.4 11.4a8.4 8.4 0 0 0-14.6-4.6L3.6 9"/><path d="M3.6 4.4V9h4.6M3.6 12.6a8.4 8.4 0 0 0 14.6 4.6l2.2-2.2"/><path d="M20.4 19.6V15h-4.6"/>'),
   logout: _i('<path d="M9.4 20.4H5.6a2 2 0 0 1-2-2V5.6a2 2 0 0 1 2-2h3.8M16 16.4l4.4-4.4L16 7.6M20.4 12H9.4"/>'),
