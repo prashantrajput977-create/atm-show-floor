@@ -1,6 +1,6 @@
 {
-  "name": "Show Floor \u2014 Vervotech",
-  "short_name": "Show Floor",
+  "name": "Vervotech Showdown",
+  "short_name": "Showdown",
   "description": "Your meetings, business card capture and deal outcomes for the trade show floor.",
   "start_url": "./index.html",
   "scope": "./",

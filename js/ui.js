@@ -1,5 +1,5 @@
 /* ============================================================
-   Show Floor — UI primitives
+   Vervotech Showdown — UI primitives
    ============================================================ */
 
 const $  = (s, r = document) => r.querySelector(s);
@@ -193,10 +193,15 @@ function copy(text, label = 'Copied') {
 }
 function buzz(ms = 12) { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} }
 
-function emptyState(icon, title, msg, btn) {
+function emptyState(icon, title, msg, ...btns) {
+  const acts = btns.filter(Boolean);
   return `<div class="empty">${I[icon] || I.info}
     <h3>${esc(title)}</h3><p>${esc(msg)}</p>
-    ${btn ? `<button class="btn primary" data-act="${esc(btn.act)}">${I[btn.icon] || ''}${esc(btn.label)}</button>` : ''}
+    ${acts.length
+      ? `<div class="empty-acts">${acts.map((b, i) =>
+          `<button class="btn ${i ? 'ghost' : 'primary'}" data-act="${esc(b.act)}">${I[b.icon] || ''}${esc(b.label)}</button>`
+        ).join('')}</div>`
+      : ''}
   </div>`;
 }
 

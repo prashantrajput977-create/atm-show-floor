@@ -1,5 +1,5 @@
 /* ============================================================
-   Show Floor — bootstrap, routing, scan flow, export
+   Vervotech Showdown — bootstrap, routing, scan flow, export
    ============================================================ */
 
 /* $, $$, esc, toast, openSheet, closeSheet come from ui.js;
@@ -72,8 +72,10 @@ function paintMe() {
 }
 function paintEvent() {
   const e = UI.activeEvent();
-  $('#bmName').textContent = e ? (e.short_name || e.name) : 'Show Floor';
-  $('#bmSub').textContent = e ? [e.city, e.stand ? 'Stand ' + e.stand : ''].filter(Boolean).join(' · ') || 'live' : 'no event';
+  $('#bmName').textContent = APP_NAME;
+  $('#bmSub').textContent = e
+    ? [e.short_name || e.name, e.city, e.stand ? 'Stand ' + e.stand : ''].filter(Boolean).join(' · ')
+    : 'no event';
   if (e) { try { localStorage.setItem('sf_evtag', [e.name, e.city].filter(Boolean).join(' · ')); } catch (_) {} }
 }
 function paintSync() {

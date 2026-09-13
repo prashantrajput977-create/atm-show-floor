@@ -1,9 +1,9 @@
-/* Show Floor service worker
+/* Vervotech Showdown service worker
    Shell is precached so the app opens with no signal.
    Fonts and Tesseract are cached on first use.
    Supabase traffic is never cached. */
 
-const V = 'sf-v5';
+const V = 'sf-v6';
 const SHELL = 'shell-' + V;
 const RUNTIME = 'rt-' + V;
 

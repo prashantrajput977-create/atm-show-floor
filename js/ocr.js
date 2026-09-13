@@ -1,5 +1,5 @@
 /* ============================================================
-   Show Floor — card reading
+   Vervotech Showdown — card reading
    1. AI vision through the Supabase edge function (best quality)
    2. Tesseract on-device fallback + heuristic field parser
    3. No signal? The image is queued and parsed when we reconnect.

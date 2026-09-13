@@ -1,5 +1,5 @@
 /* ============================================================
-   Show Floor — data layer
+   Vervotech Showdown — data layer
    Offline-first. Every write lands in local state immediately,
    goes to Postgres when there is signal, and replays from an
    IndexedDB queue when the hall wifi comes back.

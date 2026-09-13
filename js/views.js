@@ -1,5 +1,5 @@
 /* ============================================================
-   Show Floor — screens
+   Vervotech Showdown — screens
    ============================================================ */
 
 const V = {
@@ -260,10 +260,13 @@ function viewLeads() {
   };
 
   let html = `
-  <div class="searchwrap">${I.search}
-    <input class="input" id="leadQ" type="search" placeholder="Search name, company, email" value="${UI.esc(V.q)}"
-      autocomplete="off" autocapitalize="none" spellcheck="false">
-    ${V.q ? `<button class="clr" data-act="clearQ" aria-label="Clear">${I.x}</button>` : ''}
+  <div class="leadtop">
+    <div class="searchwrap">${I.search}
+      <input class="input" id="leadQ" type="search" placeholder="Search name, company, email" value="${UI.esc(V.q)}"
+        autocomplete="off" autocapitalize="none" spellcheck="false">
+      ${V.q ? `<button class="clr" data-act="clearQ" aria-label="Clear">${I.x}</button>` : ''}
+    </div>
+    <button class="addlead" data-act="manual" aria-label="Add a prospect by hand">${I.plus}<span>Add</span></button>
   </div>
   <div class="segs" style="margin-bottom:14px">
     <button data-lf="all" aria-selected="${V.leadFilter === 'all'}">All · ${counts.all}</button>
@@ -276,8 +279,9 @@ function viewLeads() {
   if (!list.length) {
     html += S.leads.length
       ? UI.emptyState('search', 'Nothing matches', 'Try a shorter search, or clear the filter.')
-      : UI.emptyState('card', 'No cards yet', 'Tap Scan and point the camera at a business card. The details get read for you.',
-        { act: 'goScan', label: 'Scan a card', icon: 'scan' });
+      : UI.emptyState('card', 'No prospects yet', 'Scan a business card, or add one by hand if the card is missing.',
+        { act: 'goScan', label: 'Scan a card', icon: 'scan' },
+        { act: 'manual', label: 'Add by hand', icon: 'edit' });
     return html;
   }
 
@@ -533,7 +537,7 @@ function viewMe() {
   </div>
 
   <button class="btn danger block" data-act="signout" style="margin-bottom:10px">${I.logout}Sign out</button>
-  <div class="hint" style="text-align:center">Show Floor · built for the Vervotech field team</div>`;
+  <div class="hint" style="text-align:center">Vervotech Showdown · built for the field team</div>`;
 }
 
 /* ============================================================

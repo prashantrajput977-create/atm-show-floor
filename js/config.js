@@ -1,5 +1,6 @@
-/* Show Floor — configuration + icon set */
+/* Vervotech Showdown — configuration + icon set */
 
+window.APP_NAME = 'Vervotech Showdown';
 window.CFG = {
   supabaseUrl: 'https://fofmpvgbeoxslpiegxql.supabase.co',
   supabaseKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZvZm1wdmdiZW94c2xwaWVneHFsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4OTE4MTksImV4cCI6MjA5MzQ2NzgxOX0.2z6pMAf4kY5sufnSiXlPjvKNnbmVqG4hiHkS-jjnwpo',
