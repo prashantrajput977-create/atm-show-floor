@@ -588,6 +588,15 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
 
 /* outcome picker */
 .outs { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-bottom: 4px }
+/* an odd last tile spans the row so the grid never ends ragged */
+.outs .outbtn:last-child:nth-child(odd) { grid-column: 1 / -1 }
+.outs .outbtn:last-child:nth-child(odd) .oi { margin-bottom: 0 }
+.outs .outbtn:last-child:nth-child(odd) {
+  display: grid; grid-template-columns: auto 1fr; gap: 11px; align-items: center;
+}
+.outs .outbtn:last-child:nth-child(odd) .ot { grid-column: 2 }
+.outs .outbtn:last-child:nth-child(odd) .od { grid-column: 2 }
+.outs .outbtn:last-child:nth-child(odd) .oi { grid-row: 1 / span 2 }
 .outbtn {
   padding: 13px 12px; border-radius: var(--r); text-align: left;
   background: var(--surf); border: 1.5px solid var(--line);
