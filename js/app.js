@@ -157,7 +157,7 @@ $$('.tab').forEach(t => t.onclick = () => {
   Store.resume();   /* a tap is a good moment to check the data is still current */
   if (V.tab === 'leads') V.q = V.q || '';
   /* All days parks V.day on 'all', so coming back to Today must restore the date */
-  if (V.tab === 'today' && V.day === 'all') V.day = UI.nowInTz().date;
+  if (V.tab === 'today' && V.day === 'all') V.day = Views.defaultDay();
   render(); renderDayRail();
   window.scrollTo({ top: 0, behavior: 'smooth' });
   UI.buzz(8);
@@ -167,7 +167,7 @@ $('#evBtn').innerHTML = I.chev;
 $('#evBtn').onclick = () => Views.openSwitchEvent();
 /* the wordmark behaves like a logo: always returns to today */
 const goHome = () => {
-  V.tab = 'today'; V.day = UI.nowInTz().date; V.q = '';
+  V.tab = 'today'; V.day = Views.defaultDay(); V.q = '';
   renderDayRail(); render(); window.scrollTo({ top: 0, behavior: 'smooth' }); UI.buzz(8);
 };
 $('#homeBtn').onclick = goHome;

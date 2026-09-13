@@ -45,6 +45,15 @@ function eventDays() {
   return out.sort();
 }
 
+/* The real calendar date is only the right landing day while the show is on.
+   Before and after it, Today must fall back to a day the event actually has,
+   or every screen reads as empty with the data sitting right there. */
+function defaultDay() {
+  const days = eventDays();
+  const today = UI.nowInTz().date;
+  return days.includes(today) ? today : (days[0] || 'all');
+}
+
 function scoped(list) { return V.scope === 'mine' ? list.filter(isMine) : list; }
 function dayFilter(list, day) { return day && day !== 'all' ? list.filter(m => m.meeting_date === day) : list; }
 
@@ -76,7 +85,7 @@ function renderDayRail() {
   const rail = UI.$('#dayrail');
   const days = eventDays();
   const today = UI.nowInTz().date;
-  if (!V.day) V.day = days.includes(today) ? today : (days[0] || 'all');
+  if (!V.day || !(days.includes(V.day) || V.day === 'all')) V.day = defaultDay();
 
   const counts = {};
   scoped(S.meetings).forEach(m => { counts[m.meeting_date] = (counts[m.meeting_date] || 0) + 1; });
@@ -1560,5 +1569,5 @@ window.Views = {
   V, render, renderDayRail, eventDays, isMine, meId, liveInfo,
   openMeeting, openOutcome, openOutcomeList, openLead, openEditLead, openAddMeeting, openEditMeeting,
   openAddEvent, openSwitchEvent, doSwitchEvent, openTeam, openLinkMeeting,
-  matchMeetings, leadCard, hydrateThumbs, scoped, dayFilter
+  matchMeetings, leadCard, hydrateThumbs, scoped, dayFilter, defaultDay
 };
