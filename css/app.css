@@ -1088,13 +1088,36 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
    ============================================================ */
 /* Phone first: one warm paper column. The ink panel below only appears
    once there is width to earn it. No gradient wash, no grid overlay. */
-.authwrap { min-height: 100dvh; display: flex; background: var(--ink) }
+.authwrap { min-height: 100dvh; display: flex; background: var(--ink); position: relative; overflow: hidden }
 .authside { display: none }
 
+/* The skyline sits under the fold on the phone. The form is lifted clear of
+   it and the band is masked to nothing where they could ever meet. */
+.authwrap::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 33dvh;
+  pointer-events: none; opacity: .82; filter: saturate(.8) contrast(.97);
+  background:
+    linear-gradient(to bottom, rgba(242, 240, 235, .78) 0%, rgba(242, 240, 235, .2) 42%, rgba(242, 240, 235, .5) 100%),
+    url('../brand/dubai-rail.webp') center 24% / cover no-repeat;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, .28) 16%, #000 46%, #000 92%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, .28) 16%, #000 46%, #000 92%, transparent 100%);
+}
+
 .authpane {
-  flex: 1 1 auto; min-width: 0;
+  flex: 1 1 auto; min-width: 0; position: relative; z-index: 1;
   display: flex; flex-direction: column; justify-content: center; align-items: center;
-  padding: calc(var(--sat) + 26px) max(20px, var(--sal)) calc(var(--sab) + 22px) max(20px, var(--sar));
+  padding: calc(var(--sat) + 26px) max(20px, var(--sal)) calc(var(--sab) + 22px + 15dvh) max(20px, var(--sar));
+}
+
+/* the same skyline closes the You tab, where the page simply ran out */
+.dubai-foot {
+  height: 128px; margin: 22px 0 4px; border-radius: var(--r-lg);
+  opacity: .85; filter: saturate(.8) contrast(.97);
+  background:
+    linear-gradient(to bottom, rgba(242, 240, 235, .4) 0%, rgba(242, 240, 235, .1) 40%, rgba(242, 240, 235, .45) 100%),
+    url('../brand/dubai-rail.webp') center 26% / cover no-repeat;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 34%, #000 76%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 34%, #000 76%, transparent 100%);
 }
 .authcard { width: 100%; max-width: 392px }
 
@@ -1138,6 +1161,9 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
 /* ---------- login, wide ---------- */
 @media (min-width: 900px) {
   .authwrap { align-items: stretch }
+  /* the wide sign-in already has its own dark panel */
+  .authwrap::after { display: none }
+  .authpane { padding-bottom: 48px }
   .authside {
     display: flex; flex-direction: column; justify-content: space-between;
     flex: 1 1 52%; max-width: 620px; position: relative; overflow: hidden;
@@ -1362,6 +1388,8 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
   }
   .rail > * { position: relative; z-index: 1 }
   /* the partner marks keep a paper cushion so they never sit on the water */
+  .dubai-foot { display: none }
+
   .rail-brand {
     display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
     padding: 0 10px; transition: opacity .14s;

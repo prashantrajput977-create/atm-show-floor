@@ -954,7 +954,8 @@ function viewMe() {
   </div>
 
   <button class="btn danger block" data-act="signout" style="margin-bottom:10px">${I.logout}Sign out</button>
-  <div class="hint" style="text-align:center">Vervotech Showdown · built for the field team</div>`;
+  <div class="hint" style="text-align:center">Vervotech Showdown · built for the field team</div>
+  <div class="dubai-foot" aria-hidden="true"></div>`;
 }
 
 /* ============================================================
