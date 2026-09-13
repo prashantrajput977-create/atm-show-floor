@@ -272,7 +272,8 @@ document.addEventListener('click', async e => {
         updated_at: new Date().toISOString()
       }, { activity: { kind: 'status_' + v, summary: `marked ${m.company_name} ${label.toLowerCase()}` } });
       UI.buzz(14);
-      if (v === 'met') { Views.openOutcome(id); render(); return; }
+      /* they turned up, so the only question left is how it went */
+      if (v === 'met') { Views.openOutcome(id, 2); render(); return; }
       closeSheet();
       toast(`${label} on ${m.company_name}`, {
         kind: 'ok', action: 'Undo',

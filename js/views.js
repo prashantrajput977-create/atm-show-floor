@@ -888,7 +888,7 @@ function openMeeting(id) {
 }
 
 
-function openOutcome(id) {
+function openOutcome(id, jump) {
   const m = S.meetings.find(x => x.id === id);
   if (!m) return;
 
@@ -896,7 +896,7 @@ function openOutcome(id) {
   let att = m.outcome === 'no_show' ? 'no_show'
     : (m.outcome ? 'met' : (['no_show', 'rescheduled', 'cancelled', 'met'].includes(m.status) ? m.status : null));
   let pick = m.outcome && m.outcome !== 'no_show' ? m.outcome : null;
-  let step = (att === 'met' && m.outcome) ? 2 : 1;
+  let step = (jump === 2 && att === 'met') || (att === 'met' && m.outcome) ? 2 : 1;
   const draft = {
     val: m.deal_value_usd != null ? String(m.deal_value_usd) : '',
     next: m.next_step || '', due: m.next_step_due || '', notes: m.outcome_notes || ''
