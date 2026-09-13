@@ -15,6 +15,7 @@ async function boot() {
   $('#sheetX').innerHTML = I.x;
   $('.tab[data-t="today"] .ic').innerHTML = I.calendar;
   $('.tab[data-t="leads"] .ic').innerHTML = I.users;
+  $('.tab[data-t="walkins"] .ic').innerHTML = I.handshake;
   $('.tab[data-t="scan"] .ring').innerHTML = I.scan;
   $('.tab[data-t="board"] .ic').innerHTML = I.grid;
   $('.tab[data-t="me"] .ic').innerHTML = I.user;
@@ -160,6 +161,8 @@ $('#main').addEventListener('click', e => {
   if (s) { V.scope = s.dataset.scope; renderDayRail(); render(); UI.buzz(6); return; }
   const lf = e.target.closest('[data-lf]');
   if (lf) { V.leadFilter = lf.dataset.lf; render(); UI.buzz(6); return; }
+  const wk = e.target.closest('[data-wk]');
+  if (wk) { V.wkScope = wk.dataset.wk; render(); UI.buzz(6); return; }
   const bd = e.target.closest('[data-bd]');
   if (bd) { V.boardDay = bd.dataset.bd; render(); UI.buzz(6); return; }
 });

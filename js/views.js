@@ -7,6 +7,7 @@ const V = {
   day: null,          // 'YYYY-MM-DD' | 'all'
   scope: 'mine',      // mine | team
   leadFilter: 'all',
+  wkScope: 'mine',    // mine | team, walk-ins tab
   q: '',
   boardDay: 'event'   // event | day
 };
@@ -312,6 +313,47 @@ function leadCard(l) {
     </span>
     <span class="chev" style="align-self:center;color:var(--tx-3)">${I.chev}</span>
   </button>`;
+}
+
+/* ============================================================
+   WALK-INS — floor pickups that were never on the sheet
+   ============================================================ */
+function viewWalkins() {
+  const all = S.meetings.filter(m => m.source === 'walkin');
+  const list = (V.wkScope === 'team' ? all : all.filter(isMine))
+    .slice()
+    .sort((a, b) => (b.meeting_date + (b.start_time || '')).localeCompare(a.meeting_date + (a.start_time || '')));
+
+  const open = list.filter(m => !isDone(m)).length;
+  const logged = list.length - open;
+
+  let html = `
+  <div class="leadtop">
+    <div class="segs" style="flex:1 1 auto;margin:0">
+      <button data-wk="mine" aria-selected="${V.wkScope !== 'team'}">${amRep() ? 'Booked by me' : 'Mine'} · ${all.filter(isMine).length}</button>
+      <button data-wk="team" aria-selected="${V.wkScope === 'team'}">Whole team · ${all.length}</button>
+    </div>
+    <button class="addlead" data-act="addMeeting" aria-label="Add a walk-in meeting">${I.plus}<span>Add</span></button>
+  </div>`;
+
+  if (!list.length) {
+    html += UI.emptyState('handshake', 'No walk-ins yet',
+      'Someone stops at the stand who is not on the sheet? Log them here and mark the outcome before they leave.',
+      { act: 'addMeeting', label: 'Add a walk-in', icon: 'plus' });
+    return html;
+  }
+
+  html += `<div class="wkstat">
+    <span><b>${open}</b> to log</span><span class="sep"></span><span><b>${logged}</b> logged</span>
+  </div>`;
+
+  html += list.map(m => `<div class="wkrow ${isDone(m) ? 'done' : ''}">
+    ${meetingCard(m)}
+    <button class="wkout" data-act="outcome" data-id="${m.id}">
+      ${I.check}${m.outcome ? 'Update outcome' : 'Mark outcome'}
+    </button>
+  </div>`).join('');
+  return html;
 }
 
 /* ============================================================
@@ -1050,7 +1092,7 @@ async function hydrateThumbs() {
    ============================================================ */
 function render() {
   const main = UI.$('#main');
-  const map = { today: viewToday, leads: viewLeads, scan: viewScan, board: viewBoard, me: viewMe };
+  const map = { today: viewToday, leads: viewLeads, walkins: viewWalkins, scan: viewScan, board: viewBoard, me: viewMe };
   const fn = map[V.tab] || viewToday;
   main.innerHTML = `<div class="page">${fn()}</div>`;
   hydrateThumbs();

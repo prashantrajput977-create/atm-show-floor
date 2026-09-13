@@ -225,10 +225,11 @@ main {
 }
 .tab {
   flex: 1 1 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 3px; color: var(--tx-3); font-size: 10px; font-weight: 650; letter-spacing: .01em;
+  gap: 3px; color: var(--tx-3); font-size: 9.5px; font-weight: 650; letter-spacing: 0;
   position: relative; transition: color .16s; min-width: 0;
 }
-.tab svg { width: 21px; height: 21px; }
+.tab svg { width: 20px; height: 20px; }
+.tab > span:last-child { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
 .tab[aria-selected="true"] { color: var(--tx); }
 .tab[aria-selected="true"]::before {
   content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
@@ -412,6 +413,27 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
   border: 1px solid rgba(181, 115, 11, .4); background: var(--hot-dim);
   padding: 1px 6px; border-radius: var(--r-full); flex: none;
 }
+
+/* walk-ins: card and its outcome button read as one unit */
+.wkstat {
+  display: flex; align-items: center; gap: 9px; margin: 0 2px 11px;
+  font-size: 11.5px; color: var(--tx-2); letter-spacing: .02em;
+}
+.wkstat b { color: var(--tx); font-weight: 700 }
+.wkstat .sep { width: 1px; height: 11px; background: var(--line-2) }
+.wkrow { margin-bottom: 10px }
+.wkrow .mtg { margin-bottom: 0; border-bottom-left-radius: 0; border-bottom-right-radius: 0 }
+.wkout {
+  display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%;
+  padding: 9px; font-size: 12.5px; font-weight: 700; letter-spacing: .01em;
+  color: var(--brand-2); background: var(--brand-dim);
+  border: 1px solid var(--line); border-top: 0;
+  border-radius: 0 0 var(--r) var(--r);
+  transition: background .16s;
+}
+.wkout svg { width: 15px; height: 15px }
+.wkout:active { background: rgba(43, 79, 238, .17) }
+.wkrow.done .wkout { color: var(--tx-2); background: var(--surf-3) }
 
 .mtg {
   display: flex; gap: 11px; align-items: stretch; width: 100%; text-align: left;
