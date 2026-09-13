@@ -17,6 +17,7 @@ async function boot() {
   $('.tab[data-t="leads"] .ic').innerHTML = I.users;
   $('.tab[data-t="walkins"] .ic').innerHTML = I.handshake;
   $('.tab[data-t="scan"] .ring').innerHTML = I.scan;
+  $('.tab[data-t="agenda"] .ic').innerHTML = I.days;
   $('.tab[data-t="board"] .ic').innerHTML = I.grid;
   $('.tab[data-t="me"] .ic').innerHTML = I.user;
 
@@ -138,6 +139,8 @@ $('#li_pass').addEventListener('input', () => $('#li_pass').classList.remove('er
 $$('.tab').forEach(t => t.onclick = () => {
   V.tab = t.dataset.t;
   if (V.tab === 'leads') V.q = V.q || '';
+  /* All days parks V.day on 'all', so coming back to Today must restore the date */
+  if (V.tab === 'today' && V.day === 'all') V.day = UI.nowInTz().date;
   render(); renderDayRail();
   window.scrollTo({ top: 0, behavior: 'smooth' });
   UI.buzz(8);

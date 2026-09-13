@@ -63,7 +63,7 @@
   --sal: env(safe-area-inset-left, 0px);
   --sar: env(safe-area-inset-right, 0px);
   --kb: 0px;
-  --bar-h: 62px;
+  --bar-h: 60px;
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -241,9 +241,9 @@ main {
 }
 .tab {
   flex: 1 1 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 4px; color: var(--tx-3); font-size: 9.5px; font-weight: 650; letter-spacing: 0;
+  gap: 4px; color: var(--tx-3); font-size: 9px; font-weight: 650; letter-spacing: -.005em;
   position: relative; transition: color .16s; min-width: 0;
-  padding-top: 2px;
+  padding: 2px 1px 0;
 }
 /* every tab's icon box is the same height, so the labels share one baseline */
 .tab > span:first-child { height: 30px; display: grid; place-items: center }
@@ -260,19 +260,20 @@ main {
   background: var(--dead); color: #fff; font-size: 9.5px; font-weight: 700;
   display: grid; place-items: center; line-height: 1;
 }
-/* Scan is the 4th of six tabs, so a raised centre FAB can never actually sit
-   centred. It keeps the same column width and baseline as every other tab and
-   earns its emphasis from a solid fill instead of breaking the bar. */
-.tab.scan { flex: 1 1 0 }
+/* Seven tabs puts Scan in slot four: the true centre of the bar. Three columns
+   each side, so the raised button sits on the bar's axis rather than near it. */
+.tab.scan { flex: 0 0 62px }
+.tab.scan > span:first-child { height: 30px; overflow: visible }
 .tab.scan .ring {
-  width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center;
+  width: 44px; height: 44px; border-radius: var(--r-full); display: grid; place-items: center;
   background: var(--brand); color: #fff;
-  box-shadow: 0 2px 8px rgba(43, 79, 238, .3);
-  transition: transform .14s, background .14s;
+  box-shadow: 0 4px 14px rgba(43, 79, 238, .34), 0 0 0 3px var(--bar);
+  margin-top: -14px; transition: transform .14s, background .14s;
 }
-.tab.scan .ring svg { width: 18px; height: 18px }
-.tab.scan:active .ring { transform: scale(.9) }
+.tab.scan .ring svg { width: 22px; height: 22px }
+.tab.scan:active .ring { transform: scale(.92) }
 .tab.scan[aria-selected="true"] .ring { background: var(--brand-2) }
+.tab.scan[aria-selected="true"]::before { display: none }
 
 /* ============================================================
    PRIMITIVES

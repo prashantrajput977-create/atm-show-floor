@@ -190,6 +190,13 @@ function viewToday() {
   return html;
 }
 
+/* The whole event in one list. Same rows, no day filter, so a rep can see the
+   full book without stepping through the rail. */
+function viewAgenda() {
+  V.day = 'all';
+  return viewToday();
+}
+
 function nowCard(m, label) {
   const t = UI.fmtTimeStr(m.meeting_time);
   const own = UI.memberById(m.owner_id), rep = UI.memberById(m.rep_id);
@@ -1108,7 +1115,7 @@ async function hydrateThumbs() {
    ============================================================ */
 function render() {
   const main = UI.$('#main');
-  const map = { today: viewToday, leads: viewLeads, walkins: viewWalkins, scan: viewScan, board: viewBoard, me: viewMe };
+  const map = { today: viewToday, agenda: viewAgenda, leads: viewLeads, walkins: viewWalkins, scan: viewScan, board: viewBoard, me: viewMe };
   const fn = map[V.tab] || viewToday;
   main.innerHTML = `<div class="page">${fn()}</div>`;
   hydrateThumbs();
