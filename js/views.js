@@ -1515,24 +1515,6 @@ function matchMeetings(l) {
   return out.sort((a, b) => b.score - a.score);
 }
 
-/* ---- thumbs ---- */
-async function hydrateThumbs() {
-  const holders = UI.$$('[data-thumb]').filter(e => e.dataset.thumb);
-  const bigs = UI.$$('[data-bigthumb]').filter(e => e.dataset.bigthumb);
-  for (const el of holders) {
-    const url = await Store.thumb(el.dataset.thumb);
-    if (!url) continue;
-    const img = document.createElement('img');
-    img.className = 'thumb'; img.src = url; img.alt = ''; img.loading = 'lazy';
-    el.replaceWith(img);
-  }
-  for (const el of bigs) {
-    const url = await Store.thumb(el.dataset.bigthumb);
-    if (!url) continue;
-    el.innerHTML = `<img src="${UI.esc(url)}" alt="Business card">`;
-    el.removeAttribute('data-bigthumb'); el.style.minHeight = '';
-  }
-}
 
 /* ============================================================
    RENDER

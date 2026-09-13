@@ -1626,3 +1626,5 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
 }
 .zoomimg { display: block; width: 100%; border-radius: var(--r); }
 .camwrap.plain .camguide { display: none; }
+/* keep the frame from collapsing while the photo loads */
+.selfie img[data-selfie] { min-height: 180px; }
