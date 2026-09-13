@@ -1334,8 +1334,9 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
   .rail > * { position: relative; z-index: 1 }
   /* the partner marks keep a paper cushion so they never sit on the water */
   .rail-foot {
-    position: relative; padding: 8px 10px 2px; border-radius: 10px;
-    background: linear-gradient(to bottom, rgba(249, 248, 244, 0), rgba(249, 248, 244, .86) 42%);
+    position: relative;
+    margin: auto -18px -22px; padding: 26px 28px 22px;
+    background: linear-gradient(to bottom, rgba(249, 248, 244, 0), rgba(249, 248, 244, .9) 58%);
   }
 
   .rail-brand {
