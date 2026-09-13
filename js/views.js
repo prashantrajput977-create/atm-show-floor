@@ -837,10 +837,9 @@ function viewMe() {
     <div style="display:flex;flex-direction:column;gap:9px">
       <button class="btn block" data-act="addMeeting">${I.plus}Add a walk-in meeting</button>
       <button class="btn block" data-act="addEvent">${I.calendar}Create a new event</button>
-      ${me.role !== 'rep' ? `<button class="btn danger block" data-act="resetEvent">${I.undo}Reset the event records</button>` : ''}
       <button class="btn block" data-act="export">${I.download}Export to CSV</button>
       ${canInstall ? `<button class="btn primary block" data-act="install">${I.upload}Install on this phone</button>` : ''}
-      <button class="btn ghost block" data-act="refresh">${I.refresh}Refresh from server</button>
+      <button class="btn ghost block" data-act="refresh">${I.refresh}Refresh from server</button>      ${me.role !== 'rep' ? `<button class="btn danger block" data-act="resetEvent">${I.undo}Reset the event records</button>` : ''}
     </div>
   </div>
 
