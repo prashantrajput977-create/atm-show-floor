@@ -53,8 +53,11 @@ async function enterApp() {
   try { await Store.loadAll(); } catch (e) {
     toast('Could not reach the server. Working from what is on this phone.', { kind: 'warn' });
   }
-  /* nothing on your name: open on the whole team rather than an empty list */
-  if (!S.meetings.some(m => m.owner_id === S.me?.user_id || m.rep_id === S.me?.user_id)) V.scope = 'team';
+  /* nothing on your name: open on the whole team rather than an empty list.
+     Reps are matched on the meetings they booked, never as an attendee. */
+  const meIsRep = S.me?.role === 'rep';
+  const key = meIsRep ? 'rep_id' : 'owner_id';
+  if (!S.meetings.some(m => m[key] === S.me?.user_id)) V.scope = 'team';
   renderDayRail(); render(); paintEvent();
   Store.ocrCheck().then(() => { if (V.tab === 'scan' || V.tab === 'me') render(); });
   Store.flush();

@@ -35,7 +35,7 @@ const _i = (p, extra = '') =>
   `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" ${extra}>${p}</svg>`;
 
 window.I = {
-  logo: `<svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><g stroke="currentColor" stroke-width="2.7" stroke-linecap="round"><path d="M4 11V7a3 3 0 0 1 3-3h4"/><path d="M21 4h4a3 3 0 0 1 3 3v4"/><path d="M28 21v4a3 3 0 0 1-3 3h-4"/><path d="M11 28H7a3 3 0 0 1-3-3v-4"/></g><circle cx="16" cy="16" r="3.9" fill="#3B62FF"/></svg>`,
+  logo: `<svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><g stroke="currentColor" stroke-width="2.7" stroke-linecap="round"><path d="M4 11V7a3 3 0 0 1 3-3h4"/><path d="M21 4h4a3 3 0 0 1 3 3v4"/><path d="M28 21v4a3 3 0 0 1-3 3h-4"/><path d="M11 28H7a3 3 0 0 1-3-3v-4"/></g><circle cx="16" cy="16" r="3.9" fill="#2B4FEE"/></svg>`,
 
   calendar: _i('<rect x="3.2" y="4.8" width="17.6" height="16" rx="2.6"/><path d="M8 3v3.6M16 3v3.6M3.2 10h17.6"/>'),
   clock: _i('<circle cx="12" cy="12" r="8.8"/><path d="M12 7.4V12l3.2 2"/>'),

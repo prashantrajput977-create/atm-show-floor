@@ -14,7 +14,17 @@ window.V = V;
 
 /* ---------------- selectors ---------------- */
 const meId = () => S.me?.user_id || null;
-const isMine = m => m.owner_id === meId() || m.rep_id === meId();
+
+/* Two distinct relationships to a meeting:
+   owner_id = the person in the room (sheet column "Meeting with")
+   rep_id   = the inside-sales rep who booked it (sheet column "IS Rep")
+   Reps do not attend, so they must never be counted as attendees. */
+const attendsIt = m => m.owner_id === meId();
+const bookedIt = m => m.rep_id === meId();
+const amRep = () => S.me?.role === 'rep';
+/* "my" means attending for leadership, booked for reps */
+const isMine = m => (amRep() ? bookedIt(m) : attendsIt(m));
+const myLabel = () => (amRep() ? 'Booked by me' : 'My meetings');
 
 function eventDays() {
   const e = UI.activeEvent();
@@ -87,8 +97,11 @@ function renderDayRail() {
    ============================================================ */
 function viewToday() {
   const all = dayFilter(scoped(S.meetings), V.day);
-  const mineN = dayFilter(S.meetings.filter(isMine), V.day).length;
-  const teamN = dayFilter(S.meetings, V.day).length;
+  /* Scope counts are event-wide on purpose: the segmented control picks WHO,
+     the day rail above it picks WHEN. Day-scoping both made "Whole team"
+     read as one day's load instead of the full book of business. */
+  const mineN = S.meetings.filter(isMine).length;
+  const teamN = S.meetings.length;
 
   const sorted = [...all].sort((a, b) => {
     const ta = UI.toMin(a.meeting_time), tb = UI.toMin(b.meeting_time);
@@ -114,7 +127,7 @@ function viewToday() {
 
   let html = `
   <div class="segs" style="margin-bottom:14px" role="tablist">
-    <button role="tab" data-scope="mine" aria-selected="${V.scope === 'mine'}">My meetings · ${mineN}</button>
+    <button role="tab" data-scope="mine" aria-selected="${V.scope === 'mine'}">${myLabel()} · ${mineN}</button>
     <button role="tab" data-scope="team" aria-selected="${V.scope === 'team'}">Whole team · ${teamN}</button>
   </div>`;
 
@@ -140,9 +153,11 @@ function viewToday() {
 
   if (!sorted.length) {
     html += UI.emptyState('calendar',
-      V.scope === 'mine' ? 'Nothing on your name' : 'No meetings this day',
+      V.scope === 'mine' ? (amRep() ? 'Nothing you booked on this day' : 'Nothing on your name') : 'No meetings this day',
       V.scope === 'mine'
-        ? 'Switch to the whole team, pick another day, or add a walk-in you just picked up.'
+        ? (amRep()
+            ? 'Switch to the whole team to follow the floor, or pick another day from the rail.'
+            : 'Switch to the whole team, pick another day, or add a walk-in you just picked up.')
         : 'Pick another day from the rail above, or add a walk-in.',
       { act: 'addMeeting', label: 'Add a walk-in', icon: 'plus' });
   } else {
@@ -341,7 +356,8 @@ function viewBoard() {
 
   /* leaderboard */
   const rows = S.members.map(mem => {
-    const mine = mtgs.filter(m => m.owner_id === mem.user_id || m.rep_id === mem.user_id);
+    /* attendance board: only the people actually in the room */
+    const mine = mtgs.filter(m => m.owner_id === mem.user_id);
     const lg = mine.filter(m => m.outcome);
     return {
       mem, total: mine.length,
@@ -466,8 +482,8 @@ function viewMe() {
   </div>
 
   <div class="kpis">
-    <div class="kpi brand"><div class="k">My meetings</div><div class="v tnum">${mine.length}</div><div class="d">${logged.length} logged</div></div>
-    <div class="kpi deal"><div class="k">My deals</div><div class="v tnum">${mine.filter(m => m.outcome === 'deal').length}</div><div class="d">${mine.filter(m => m.outcome === 'hot').length} hot</div></div>
+    <div class="kpi brand"><div class="k">${me.role === 'rep' ? 'Booked by me' : 'My meetings'}</div><div class="v tnum">${mine.length}</div><div class="d">${logged.length} logged</div></div>
+    <div class="kpi deal"><div class="k">${me.role === 'rep' ? 'Deals booked' : 'My deals'}</div><div class="v tnum">${mine.filter(m => m.outcome === 'deal').length}</div><div class="d">${mine.filter(m => m.outcome === 'hot').length} hot</div></div>
     <div class="kpi"><div class="k">My cards</div><div class="v tnum">${myLeads.length}</div><div class="d">captured by me</div></div>
     <div class="kpi hot"><div class="k">To log</div><div class="v tnum">${mine.length - logged.length}</div><div class="d">outcomes open</div></div>
   </div>
@@ -943,11 +959,12 @@ async function doSwitchEvent(id) {
 
 function openTeam() {
   const body = `<div class="card lb">${S.members.map(m => {
-    const mine = S.meetings.filter(x => x.owner_id === m.user_id || x.rep_id === m.user_id);
+    const isRep = m.role === 'rep';
+    const mine = S.meetings.filter(x => (isRep ? x.rep_id === m.user_id : x.owner_id === m.user_id));
     return `<div class="lbrow${m.user_id === meId() ? ' me' : ''}">
       ${UI.avatar(m, 'sm')}
       <span class="who"><span class="n">${UI.esc(m.full_name)}${m.user_id === meId() ? ' · you' : ''}</span>
-      <span class="s">${UI.esc(m.title || (m.role === 'leader' ? 'Leadership' : 'Inside sales'))} · ${mine.length} meetings</span></span>
+      <span class="s">${UI.esc(m.title || (isRep ? 'Inside sales' : 'Leadership'))} · ${mine.length} ${isRep ? 'booked' : 'meetings'}</span></span>
       <span class="nums"><span class="big">${mine.filter(x => x.outcome === 'deal').length}</span><span class="sm">DEALS</span></span>
     </div>`;
   }).join('')}</div>`;
