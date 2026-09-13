@@ -250,7 +250,9 @@ document.addEventListener('click', async e => {
       toast('Writing up the note');
       try {
         const blob = await (await fetch(url)).blob();
-        const r = await Store.transcribe(blob);
+        let r;
+        try { r = await Store.transcribe(blob); }
+        catch (e1) { await new Promise(z => setTimeout(z, 900)); r = await Store.transcribe(blob); }
         const patch = { voice_transcript: r.transcript || null, updated_at: new Date().toISOString() };
         if (r.next_step && !row.next_step) patch.next_step = r.next_step;
         if (tb === 'ev_leads') await Store.updateLead(id, patch); else await Store.updateMeeting(id, patch);
@@ -623,8 +625,13 @@ async function openVoice(table, id) {
         blob.__ms = ms;
         if (blob.size < 1200) { toast('That was too short', { kind: 'bad' }); phase = 'idle'; return paint(); }
         if (!navigator.onLine) { result = null; phase = 'done'; return paint(); }
+        /* one quiet retry: a cold function or a dropped packet should not cost the rep their note */
         try { result = await Store.transcribe(blob); }
-        catch (e) { result = null; toast(String(e.message || e).slice(0, 90), { kind: 'bad' }); }
+        catch (e1) {
+          await new Promise(r => setTimeout(r, 900));
+          try { result = await Store.transcribe(blob); }
+          catch (e2) { result = null; toast(String(e2.message || e2).slice(0, 90), { kind: 'bad' }); }
+        }
         phase = 'done'; paint();
       }
 
