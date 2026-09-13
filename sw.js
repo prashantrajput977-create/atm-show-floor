@@ -3,7 +3,7 @@
    Fonts and Tesseract are cached on first use.
    Supabase traffic is never cached. */
 
-const V = 'sf-v4';
+const V = 'sf-v5';
 const SHELL = 'shell-' + V;
 const RUNTIME = 'rt-' + V;
 

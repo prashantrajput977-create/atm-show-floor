@@ -225,8 +225,9 @@ function meetingCard(m) {
         ${m.category ? `<span class="tag">${UI.esc(shortCat(m.category))}</span>` : ''}
         ${m.prospect_name && m.geo_region ? `<span class="tag">${UI.esc(m.geo_region)}</span>` : ''}
         ${lc ? `<span class="tag brand">${I.card}${lc}</span>` : ''}
-        ${V.scope === 'team' && mine ? '<span class="tag mine">Mine</span>' : ''}
-        ${V.scope === 'team' && own ? UI.avatar(own, 'xs') : ''}
+        ${V.scope === 'team' && mine ? `<span class="tag mine">${amRep() ? 'Booked' : 'Mine'}</span>` : ''}
+        ${/* a rep never sits in the room, so name the attendee even in their own list */
+          own && (V.scope === 'team' || amRep()) ? `<span class="tag">${UI.avatar(own, 'xs')}${UI.esc(own.short_name || '')}</span>` : ''}
         ${V.scope === 'team' && rep && rep.user_id !== own?.user_id ? UI.avatar(rep, 'xs') : ''}
         ${V.day === 'all' ? `<span class="tag">${UI.esc(UI.fmtDate(m.meeting_date))}</span>` : ''}
       </span>

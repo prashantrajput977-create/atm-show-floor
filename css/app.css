@@ -338,6 +338,8 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
 .tag.no_deal, .tag.unqualified { background: var(--dead-dim); color: var(--dead); border-color: rgba(216, 50, 60, .3) }
 .tag.brand { background: var(--brand-dim); color: var(--brand); border-color: rgba(43, 79, 238, .32) }
 .tag.mine { background: var(--tint); color: var(--tx); border-color: var(--line-2) }
+/* attendee chip: small avatar sitting flush inside the pill */
+.tag > .avatar.xs { width: 14px; height: 14px; font-size: 7.5px; border-radius: 4px; margin-left: -2px; border: 0 }
 
 .segs {
   display: flex; gap: 4px; padding: 3px; border-radius: var(--r-sm);
