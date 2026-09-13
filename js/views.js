@@ -104,7 +104,11 @@ function viewToday() {
   const mineN = S.meetings.filter(isMine).length;
   const teamN = S.meetings.length;
 
+  const allDays = V.day === 'all';
   const sorted = [...all].sort((a, b) => {
+    /* across the whole event, day is the primary key or the days interleave */
+    if (allDays && a.meeting_date !== b.meeting_date)
+      return String(a.meeting_date).localeCompare(String(b.meeting_date));
     const ta = UI.toMin(a.meeting_time), tb = UI.toMin(b.meeting_time);
     if (ta == null && tb == null) return (a.company_name || '').localeCompare(b.company_name || '');
     if (ta == null) return 1;
@@ -168,22 +172,28 @@ function viewToday() {
         : 'Pick another day from the rail above, or add a walk-in.',
       { act: 'addMeeting', label: 'Add a walk-in', icon: 'plus' });
   } else {
-    let lastSlot = null;
+    /* one day per group across the whole event, one time slot per group
+       within a single day */
+    let lastKey = null;
     html += '<div class="agenda">';
     sorted.forEach(m => {
-      const sl = UI.slotOf(m.meeting_time);
-      if (sl !== lastSlot) {
-        if (lastSlot !== null) html += '</div>';
-        lastSlot = sl;
-        const isNowSlot = live && UI.slotOf(live.meeting_time) === sl;
-        html += `<div class="slot-h${isNowSlot ? ' now' : ''}">
-          <span class="t">${UI.esc(sl)}</span><span class="ln"></span>
-          ${isNowSlot ? '<span class="live">LIVE</span>' : ''}
+      const key = allDays ? m.meeting_date : UI.slotOf(m.meeting_time);
+      if (key !== lastKey) {
+        if (lastKey !== null) html += '</div>';
+        lastKey = key;
+        const isNowGrp = allDays
+          ? m.meeting_date === now.date
+          : !!(live && UI.slotOf(live.meeting_time) === key);
+        const label = allDays ? UI.fmtDate(m.meeting_date) : key;
+        const n = sorted.filter(x => (allDays ? x.meeting_date : UI.slotOf(x.meeting_time)) === key).length;
+        html += `<div class="slot-h${isNowGrp ? ' now' : ''}">
+          <span class="t">${UI.esc(label)}</span><span class="ln"></span>
+          ${allDays ? `<span class="ct">${n}</span>` : (isNowGrp ? '<span class="live">LIVE</span>' : '')}
         </div><div class="slotsheet">`;
       }
       html += meetingCard(m);
     });
-    if (lastSlot !== null) html += '</div>';
+    if (lastKey !== null) html += '</div>';
     html += '</div>';
     html += `<button class="btn ghost block" data-act="addMeeting" style="margin-top:6px">${I.plus}Add a walk-in meeting</button>`;
   }
@@ -227,7 +237,6 @@ function meetingCard(m) {
   const facts = [
     m.geo_region,
     m.category ? shortCat(m.category) : '',
-    V.day === 'all' ? UI.fmtDate(m.meeting_date) : '',
     m.duration_min && m.duration_min !== 30 ? m.duration_min + ' min' : ''
   ].filter(Boolean);
 

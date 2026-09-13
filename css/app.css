@@ -444,6 +444,10 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
   letter-spacing: .1em; flex: none; text-transform: uppercase;
 }
 .slot-h .ln { flex: 1; height: 1px; background: var(--line-2); opacity: .7 }
+.slot-h .ct {
+  font-family: var(--ff-mono); font-size: 9.5px; font-weight: 700; color: var(--tx-3);
+  letter-spacing: .04em; flex: none;
+}
 .slot-h.now .t { color: var(--hot) }
 .slot-h.now .ln { background: linear-gradient(90deg, var(--hot), transparent) }
 .slot-h.now .live {
