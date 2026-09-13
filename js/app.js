@@ -478,7 +478,8 @@ function doExport() {
   a.href = url; a.download = name;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 4000);
-  toast(`${mrows.length} meetings and ${lrows.length} cards exported`, { kind: 'ok' });
+  const pl = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+  toast(`${pl(mrows.length, 'meeting')} and ${pl(lrows.length, 'card')} exported`, { kind: 'ok' });
 }
 
 /* ---------------- sign out ---------------- */

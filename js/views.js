@@ -72,7 +72,9 @@ function renderDayRail() {
       </button>`;
     }).join('') +
     `<button class="daychip all" data-day="all" aria-selected="${V.day === 'all'}">
-       <span class="dc-1">All</span><span class="dc-2 mono">${total}</span><span class="dc-3">days</span>
+       <span class="dc-1">All</span>
+       <span class="dc-2 mono">${total}</span>
+       <span class="dc-3">mtg${total === 1 ? '' : 's'}</span>
      </button>`;
 
   const sel = rail.querySelector('[aria-selected="true"]');
