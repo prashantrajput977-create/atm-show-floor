@@ -1371,3 +1371,45 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
 
 /* the picker inside a form sits tighter than the one in the outcome sheet */
 .field .outs { margin-top: 2px }
+
+/* ---------------- route breakdown ---------------- */
+.routes { display: flex; flex-direction: column; gap: 9px }
+.route {
+  background: var(--surf); border: 1px solid var(--line); border-radius: var(--r-lg);
+  box-shadow: var(--sh-1); padding: 13px 14px 12px;
+}
+.rt-h { display: flex; align-items: center; gap: 11px }
+.rt-i {
+  width: 30px; height: 30px; flex: none; border-radius: 9px; display: grid; place-items: center;
+  background: var(--surf-3); color: var(--tx-2);
+}
+.rt-i svg { width: 15px; height: 15px }
+.rt-t { flex: 1; min-width: 0; display: grid }
+.rt-1 { font-size: 14px; font-weight: 700; letter-spacing: -.018em; color: var(--tx) }
+.rt-2 { font-size: 11.5px; color: var(--tx-3); margin-top: 1px }
+.rt-n { font-family: var(--ff-mono); font-size: 17px; font-weight: 700; color: var(--tx) }
+.rt-bar {
+  display: flex; height: 6px; border-radius: 999px; overflow: hidden;
+  background: var(--track); margin: 11px 0 10px;
+}
+.rt-bar i { height: 100% }
+.rt-chips { display: flex; flex-wrap: wrap; gap: 6px }
+.rchip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 9px; border-radius: var(--r-full);
+  background: var(--surf-2); border: 1px solid var(--line);
+  font-size: 11.5px; font-weight: 600; color: var(--tx-2); letter-spacing: -.005em;
+}
+.rchip i { width: 6px; height: 6px; border-radius: 999px; background: currentColor }
+.rchip b { font-weight: 700; color: var(--tx) }
+.rchip.t-deal { color: var(--deal) } .rchip.t-deal { border-color: color-mix(in srgb, var(--deal) 26%, var(--line)) }
+.rchip.t-hot { color: var(--hot); border-color: color-mix(in srgb, var(--hot) 26%, var(--line)) }
+.rchip.t-nurture { color: var(--nurture); border-color: color-mix(in srgb, var(--nurture) 26%, var(--line)) }
+.rchip.t-dead { color: var(--dead); border-color: color-mix(in srgb, var(--dead) 26%, var(--line)) }
+.rchip.t-mute { color: var(--tx-3) }
+.rchip.zero { color: var(--tx-3); background: transparent }
+.rchip.val { color: var(--tx); font-weight: 700; background: var(--surf-3); border-color: var(--line-2) }
+.rt-bar i.t-deal { background: var(--deal) }
+.rt-bar i.t-hot { background: var(--hot) }
+.rt-bar i.t-dead { background: var(--dead) }
+.rt-bar i.t-mute { background: var(--line-2) }

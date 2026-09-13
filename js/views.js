@@ -450,13 +450,19 @@ function viewBoard() {
   }) : S.leads;
 
   const logged = mtgs.filter(m => m.outcome);
-  const byGrp = g => mtgs.filter(m => m.outcome && OUT_MAP[m.outcome]?.grp === g);
+  /* a contact attached to a meeting is already counted through that meeting,
+     so only standalone captures are added to the event totals */
+  const solo = leads.filter(l => !l.meeting_id && l.interest);
+  const grpOf = v => OUT_MAP[v]?.grp;
+  const byGrp = g => [...mtgs.filter(m => grpOf(m.outcome) === g), ...solo.filter(l => grpOf(l.interest) === g)];
   const deals = byGrp('created');
   const open = byGrp('open');
   const dropped = byGrp('dropped');
   const missed = byGrp('missed');
   const dealVal = deals.reduce((s, m) => s + (Number(m.deal_value_usd) || 0), 0);
   const openVal = open.reduce((s, m) => s + (Number(m.deal_value_usd) || 0), 0);
+  const handled = logged.length + solo.length;
+  const totalRecs = mtgs.length + leads.filter(l => !l.meeting_id).length;
 
   /* leaderboard */
   const rows = S.members.map(mem => {
@@ -485,15 +491,15 @@ function viewBoard() {
   </div>
 
   <div class="kpis">
-    <div class="kpi brand"><div class="k">Meetings</div><div class="v tnum">${mtgs.length}</div><div class="d">${logged.length} logged, ${mtgs.length - logged.length} open</div></div>
+    <div class="kpi brand"><div class="k">Everything logged</div><div class="v tnum">${handled}</div><div class="d">of ${totalRecs} record${totalRecs === 1 ? '' : 's'} · ${mtgs.length} meeting${mtgs.length === 1 ? '' : 's'}, ${leads.length} card${leads.length === 1 ? '' : 's'}</div></div>
     <div class="kpi deal"><div class="k">Deals created</div><div class="v tnum">${deals.length}</div><div class="d">${deals.length ? UI.money(dealVal) + ' in play' : 'none recorded yet'}</div></div>
     <div class="kpi hot"><div class="k">Still in play</div><div class="v tnum">${open.length}</div><div class="d">${openVal ? UI.money(openVal) + ' behind them' : 'future and nurture'}</div></div>
     <div class="kpi bad"><div class="k">Closed out</div><div class="v tnum">${dropped.length + missed.length}</div><div class="d">${dropped.length} dropped, ${missed.length} no show</div></div>
   </div>
 
-  ${ledgerBlock(mtgs, logged)}
+  ${ledgerBlock(mtgs, solo)}
+  ${routeBlock(mtgs, leads)}
   ${dealsBlock(deals)}
-  ${sourceBlock(mtgs, leads)}
 
   ${lbBlock('On the floor', 'Who took the meeting and logged the call', floor, false)}
   ${lbBlock('IS reps', 'Meetings they set up, and what those turned into', booked, true)}
@@ -549,22 +555,26 @@ function lbBlock(title, sub, rows, isRepTable) {
 /* ---------- outcome ledger ----------
    Every call the team made, in pipeline order, each row a door into the
    records behind the number. This is the answer to "what happened and why". */
-function ledgerBlock(mtgs, logged) {
-  const T = Math.max(1, logged.length);
+function ledgerBlock(mtgs, solo) {
   const rowsFor = OUTCOMES.map(o => {
     const list = mtgs.filter(m => m.outcome === o.v);
+    const cards = solo.filter(l => l.interest === o.v);
     return {
-      o, n: list.length,
+      o, n: list.length + cards.length, mtg: list.length, card: cards.length,
       value: OUT_VALUED.includes(o.v) ? list.reduce((s, m) => s + (Number(m.deal_value_usd) || 0), 0) : 0
     };
   });
+  const done = rowsFor.reduce((a, r) => a + r.n, 0);
+  const all = mtgs.length + solo.length + 0;
+  const T = Math.max(1, done);
 
   return `<div class="sec">
     <div class="sec-h">
       <h2>Outcome ledger</h2>
-      <span class="count">${logged.length}/${mtgs.length} logged</span>
+      <span class="count">${done} logged</span>
     </div>
-    ${logged.length ? `<div class="stackbar" aria-hidden="true">
+    <p class="hint" style="margin:0 0 8px 2px">Every meeting and every standalone card, in pipeline order. Tap a row for the records behind it.</p>
+    ${done ? `<div class="stackbar" aria-hidden="true">
       ${rowsFor.filter(r => r.n).map(r => `<i class="t-${r.o.tone}" style="width:${r.n / T * 100}%" title="${r.o.label}"></i>`).join('')}
     </div>` : ''}
     <div class="card ledger">
@@ -572,14 +582,16 @@ function ledgerBlock(mtgs, logged) {
         <span class="lg-i t-${r.o.tone}">${I[r.o.icon] || I.bolt}</span>
         <span class="lg-t">
           <span class="lg-1">${r.o.label}</span>
-          <span class="lg-2">${r.n ? (OUT_GRP[r.o.grp].label + (r.value ? ' · ' + UI.money(r.value) : '')) : r.o.desc}</span>
+          <span class="lg-2">${r.n
+            ? [r.mtg ? r.mtg + ' meeting' + (r.mtg === 1 ? '' : 's') : '', r.card ? r.card + ' card' + (r.card === 1 ? '' : 's') : '', r.value ? UI.money(r.value) : ''].filter(Boolean).join(' · ')
+            : r.o.desc}</span>
           <span class="lg-tr"><i class="t-${r.o.tone}" style="width:${r.n / T * 100}%"></i></span>
         </span>
         <span class="lg-n tnum">${r.n}</span>
         ${r.n ? I.chev : ''}
       </button>`).join('')}
     </div>
-    ${logged.length < mtgs.length ? `<p class="hint" style="margin:8px 2px 0">${mtgs.length - logged.length} meeting${mtgs.length - logged.length === 1 ? '' : 's'} still without an outcome. Each one stays invisible to the pipeline until someone records it.</p>` : ''}
+    ${mtgs.filter(m => !isDone(m)).length ? `<p class="hint" style="margin:8px 2px 0">${mtgs.filter(m => !isDone(m)).length} meeting${mtgs.filter(m => !isDone(m)).length === 1 ? '' : 's'} still without an outcome. Each one stays invisible to the pipeline until someone records it.</p>` : ''}
   </div>`;
 }
 
@@ -609,46 +621,62 @@ function dealsBlock(deals) {
   </div>`;
 }
 
-/* ---------- how it came in ----------
-   Booked ahead, walked up, or typed in on the floor. One line per route with
-   the numbers that matter, so nobody has to guess where a deal originated. */
-function sourceBlock(mtgs, leads) {
-  const keys = ['sheet', 'walkin', 'manual'].filter(k => mtgs.some(m => (m.source || 'sheet') === k));
-  const scanned = leads.filter(l => l.card_front_path || l.ocr_text).length;
-  const rows = keys.map(k => {
-    const list = mtgs.filter(m => (m.source || 'sheet') === k);
+/* ---------- what happened, by route ----------
+   Prebooked, walked up, typed in, or just a card. Same outcome language on
+   every route so "deals from walk-ins" and "deals from prebooked" sit side
+   by side instead of living in different reports. */
+function routeBlock(mtgs, leads) {
+  const src = k => mtgs.filter(m => (m.source || 'sheet') === k);
+  const routes = [
+    { k: 'sheet',  label: 'Prebooked meetings', desc: 'Off the meeting sheet',          list: src('sheet'),  out: m => m.outcome, icon: 'calendar' },
+    { k: 'walkin', label: 'Walk-ins',           desc: 'Picked up on the floor',         list: src('walkin'), out: m => m.outcome, icon: 'handshake' },
+    { k: 'manual', label: 'Added on site',      desc: 'Typed in by the team',           list: src('manual'), out: m => m.outcome, icon: 'edit' },
+    { k: 'cards',  label: 'Cards only',         desc: 'Captured, not tied to a meeting', list: leads.filter(l => !l.meeting_id), out: l => l.interest, icon: 'card' }
+  ].filter(r => r.list.length);
+
+  if (!routes.length) return '';
+
+  const rows = routes.map(r => {
+    const logged = r.list.filter(x => r.out(x));
+    const cnt = g => r.list.filter(x => OUT_MAP[r.out(x)]?.grp === g).length;
+    const deal = r.list.filter(x => r.out(x) === 'deal');
     return {
-      k, n: list.length,
-      called: list.filter(m => m.outcome).length,
-      deal: list.filter(m => m.outcome === 'deal').length,
-      open: list.filter(m => m.outcome && OUT_MAP[m.outcome]?.grp === 'open').length
+      ...r, n: r.list.length, logged: logged.length,
+      deal: deal.length, open: cnt('open'), bad: cnt('dropped'), missed: cnt('missed'),
+      value: deal.reduce((a, x) => a + (Number(x.deal_value_usd) || 0), 0),
+      chips: CALLS.concat(OUT_MAP.no_show).filter(o => r.list.some(x => r.out(x) === o.v))
+        .map(o => ({ o, n: r.list.filter(x => r.out(x) === o.v).length }))
     };
   });
 
   return `<div class="sec">
-    <div class="sec-h"><h2>How it came in</h2></div>
-    <div class="card srcs">
-      <div class="srow head">
-        <span class="s-1">Route</span>
-        <span class="s-n">Total</span><span class="s-n">Logged</span>
-        <span class="s-n">Deals</span><span class="s-n">Open</span>
-      </div>
-      ${rows.map(r => `<div class="srow">
-        <span class="s-1">${SOURCES[r.k].label}<i>${SOURCES[r.k].desc}</i></span>
-        <span class="s-n tnum">${r.n}</span>
-        <span class="s-n tnum">${r.called}</span>
-        <span class="s-n tnum${r.deal ? ' hi' : ''}">${r.deal}</span>
-        <span class="s-n tnum">${r.open}</span>
-      </div>`).join('')}
-      <div class="srow foot">
-        <span class="s-1">Cards captured<i>${scanned} read by the scanner, ${Math.max(0, leads.length - scanned)} typed by hand</i></span>
-        <span class="s-n tnum">${leads.length}</span>
-        <span class="s-n"></span><span class="s-n"></span><span class="s-n"></span>
-      </div>
+    <div class="sec-h"><h2>What happened, by route</h2></div>
+    <p class="hint" style="margin:0 0 9px 2px">Same outcomes, split by how the prospect reached us.</p>
+    <div class="routes">
+      ${rows.map(r => {
+        const T = Math.max(1, r.n);
+        return `<div class="route">
+          <div class="rt-h">
+            <span class="rt-i">${I[r.icon] || I.info}</span>
+            <span class="rt-t"><span class="rt-1">${r.label}</span><span class="rt-2">${r.desc}</span></span>
+            <span class="rt-n tnum">${r.n}</span>
+          </div>
+          <div class="rt-bar" aria-hidden="true">
+            <i class="t-deal" style="width:${r.deal / T * 100}%"></i>
+            <i class="t-hot" style="width:${r.open / T * 100}%"></i>
+            <i class="t-dead" style="width:${r.bad / T * 100}%"></i>
+            <i class="t-mute" style="width:${r.missed / T * 100}%"></i>
+          </div>
+          <div class="rt-chips">
+            ${r.chips.length
+              ? r.chips.map(c => `<span class="rchip t-${c.o.tone}"><i></i>${c.o.short} <b class="tnum">${c.n}</b></span>`).join('')
+              : '<span class="rchip zero">Nothing logged yet</span>'}
+            ${r.n - r.logged ? `<span class="rchip zero">${r.n - r.logged} open</span>` : ''}
+            ${r.value ? `<span class="rchip val tnum">${UI.money(r.value)}</span>` : ''}
+          </div>
+        </div>`;
+      }).join('')}
     </div>
-    ${keys.length === 1 && keys[0] === 'sheet'
-      ? `<p class="hint" style="margin:8px 2px 0">Everything so far came off the booked sheet. Walk-ins and hand-added prospects show up here as their own rows the moment someone logs one.</p>`
-      : ''}
   </div>`;
 }
 
@@ -661,11 +689,13 @@ function openOutcomeList(val) {
     .filter(m => m.outcome === val && (!inDay || m.meeting_date === V.day))
     .sort((a, b) => (Number(b.deal_value_usd) || 0) - (Number(a.deal_value_usd) || 0)
       || String(a.company_name).localeCompare(String(b.company_name)));
+  const cards = S.leads.filter(l => !l.meeting_id && l.interest === val);
   const value = OUT_VALUED.includes(val) ? list.reduce((s, m) => s + (Number(m.deal_value_usd) || 0), 0) : 0;
+  const total = list.length + cards.length;
 
   UI.openSheet({
     title: o.label,
-    sub: `${list.length} ${list.length === 1 ? 'record' : 'records'}${value ? ' · ' + UI.money(value) : ''}${inDay ? ' · ' + UI.fmtDate(V.day) : ''}`,
+    sub: `${total} ${total === 1 ? 'record' : 'records'}${value ? ' · ' + UI.money(value) : ''}${inDay ? ' · ' + UI.fmtDate(V.day) : ''}`,
     body: `
       <p class="hint" style="margin:0 0 12px">${o.desc}.</p>
       <div class="card dlist">
@@ -679,7 +709,9 @@ function openOutcomeList(val) {
           ${OUT_VALUED.includes(val) ? `<span class="dl-v tnum">${m.deal_value_usd ? UI.money(m.deal_value_usd) : '—'}</span>` : ''}
           ${I.chev}
         </button>`).join('')}
-      </div>`,
+      </div>
+      ${cards.length ? `<div class="sec-h" style="margin-top:16px"><h2>Cards only</h2><span class="count">${cards.length}</span></div>
+        ${cards.map(leadCard).join('')}` : ''}`,
     foot: `<button class="btn ghost" data-x>Close</button>`,
     onMount(b, f) { f.querySelector('[data-x]').onclick = () => UI.closeSheet(); }
   });
