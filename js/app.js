@@ -87,6 +87,13 @@ function paintMe() {
   btn.textContent = UI.initials(S.me?.full_name || S.me?.short_name || '?');
   btn.style.background = `linear-gradient(150deg,hsl(${hue} 64% 52%),hsl(${(hue + 26) % 360} 58% 38%))`;
 }
+/* the skyline follows the event: Dubai, Singapore, Antalya */
+function setCity(city) {
+  const c = String(city || '').toLowerCase();
+  const key = /singapore/.test(c) ? 'singapore' : /antalya/.test(c) ? 'antalya' : 'dubai';
+  document.documentElement.dataset.city = key;
+  try { localStorage.setItem('sf_city', key); } catch (_) {}
+}
 function paintEvent() {
   const e = UI.activeEvent();
   const line = e
@@ -94,6 +101,7 @@ function paintEvent() {
     : 'no event';
   $('#bmSub').textContent = line;
   $('#railEv').textContent = line;
+  setCity(e && e.city);
   if (e) { try { localStorage.setItem('sf_evtag', [e.name, e.city].filter(Boolean).join(' · ')); } catch (_) {} }
 }
 function paintSync() {

@@ -189,9 +189,14 @@ async function loadAll({ fromCache = true } = {}) {
     S.members = mem.data || [];
     S.events = evs.data || [];
 
-    const saved = localStorage.getItem('sf_event');
-    const active = S.events.find(e => e.id === saved) ||
-      S.events.find(e => e.is_active) || S.events[0];
+    /* open on the show that is on now, else the next one. A phone that last
+       used an event which has since ended moves on by itself. */
+    const today = new Date().toISOString().slice(0, 10);
+    const live = S.events.filter(e => e.ends_on >= today)
+      .sort((a, b) => a.starts_on.localeCompare(b.starts_on))[0];
+    const saved = S.events.find(e => e.id === localStorage.getItem('sf_event'));
+    const active = (saved && saved.ends_on >= today ? saved : null) ||
+      live || saved || S.events.find(e => e.is_active) || S.events[0];
     S.eventId = active ? active.id : null;
     if (S.eventId) localStorage.setItem('sf_event', S.eventId);
 

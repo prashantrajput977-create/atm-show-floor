@@ -1459,7 +1459,7 @@ function openAddEvent() {
     ${F('v_venue', 'Venue', '', 'autocapitalize="words"')}
     ${F('v_stand', 'Our stand', '', 'placeholder="ME1234"')}
     <div class="grid2">${F('v_from', 'Starts', '', 'type="date" class="input mono"')}${F('v_to', 'Ends', '', 'type="date" class="input mono"')}</div>
-    ${SEL('v_tz', 'Timezone', 'Asia/Dubai', ['Asia/Dubai', 'Asia/Calcutta', 'Europe/London', 'Europe/Berlin', 'America/New_York', 'Asia/Singapore', 'Asia/Riyadh'], 'Pick one')}
+    ${SEL('v_tz', 'Timezone', 'Asia/Dubai', ['Asia/Dubai', 'Asia/Calcutta', 'Europe/London', 'Europe/Berlin', 'America/New_York', 'Asia/Singapore', 'Asia/Riyadh', 'Europe/Istanbul'], 'Pick one')}
     <div class="hint">New events start empty. Add meetings as you book them, or send me the sheet and I will import it.</div>`;
 
   UI.openSheet({

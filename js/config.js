@@ -1,7 +1,7 @@
 /* Vervotech Showdown — configuration + icon set */
 
 window.APP_NAME = 'Vervotech Showdown';
-window.BUILD = '59';
+window.BUILD = '60';
 window.CFG = {
   supabaseUrl: 'https://fofmpvgbeoxslpiegxql.supabase.co',
   supabaseKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZvZm1wdmdiZW94c2xwaWVneHFsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4OTE4MTksImV4cCI6MjA5MzQ2NzgxOX0.2z6pMAf4kY5sufnSiXlPjvKNnbmVqG4hiHkS-jjnwpo',
@@ -21,7 +21,7 @@ window.CFG = {
   /* the console is a view for whoever runs the floor, not a security boundary */
   admins: ['prashant@vervotech.com'],
   /* shown on the sign-in screen before we have a session */
-  eventTag: 'Arabian Travel Market 2026 · Dubai'
+  eventTag: 'ITB Asia 2026 · Singapore'
 };
 
 /* Outcome vocabulary — one shared source of truth for colour + copy */
