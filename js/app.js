@@ -90,7 +90,7 @@ function paintMe() {
 /* the skyline follows the event: Dubai, Singapore, Antalya */
 function setCity(city) {
   const c = String(city || '').toLowerCase();
-  const key = /singapore/.test(c) ? 'singapore' : /antalya/.test(c) ? 'antalya' : 'dubai';
+  const key = /singapore/.test(c) ? 'singapore' : /antalya/.test(c) ? 'antalya' : /london/.test(c) ? 'london' : 'dubai';
   document.documentElement.dataset.city = key;
   try { localStorage.setItem('sf_city', key); } catch (_) {}
 }

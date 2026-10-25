@@ -90,7 +90,7 @@ function dParts(ds) {
   const dt = new Date(Date.UTC(y, m - 1, d));
   return { dow: DOW[dt.getUTCDay()], mon: MON[m - 1], day: d, y };
 }
-function fmtDate(ds) { const p = dParts(ds); return `${p.dow} ${p.day} ${p.mon}`; }
+function fmtDate(ds) { if (!ds) return 'Date to be confirmed'; const p = dParts(ds); return `${p.dow} ${p.day} ${p.mon}`; }
 function ago(iso) {
   if (!iso) return '';
   const t = typeof iso === 'number' ? iso : new Date(iso).getTime();

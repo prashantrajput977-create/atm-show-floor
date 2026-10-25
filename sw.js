@@ -3,31 +3,32 @@
    Fonts and Tesseract are cached on first use.
    Supabase traffic is never cached. */
 
-const V = 'sf-v60';
+const V = 'sf-v61';
 const SHELL = 'shell-' + V;
 const RUNTIME = 'rt-' + V;
 
 const CORE = [
   './',
   './index.html',
-  './css/app.css?b=60',
-  './js/vendor/supabase.js?b=60',
-  './js/brand.js?b=60',
-  './js/config.js?b=60',
-  './js/store.js?b=60',
-  './js/ocr.js?b=60',
-  './js/ui.js?b=60',
-  './js/views.js?b=60',
-  './js/app.js?b=60',
+  './css/app.css?b=61',
+  './js/vendor/supabase.js?b=61',
+  './js/brand.js?b=61',
+  './js/config.js?b=61',
+  './js/store.js?b=61',
+  './js/ocr.js?b=61',
+  './js/ui.js?b=61',
+  './js/views.js?b=61',
+  './js/app.js?b=61',
   './manifest.json',
-  './brand/word.svg?b=60',
-  './brand/dubai-rail.webp?b=60',
-  './brand/singapore-rail.webp?b=60',
-  './brand/antalya-rail.webp?b=60',
-  './icons/favicon.svg?b=60',
-  './icons/icon-192.png?b=60',
+  './brand/word.svg?b=61',
+  './brand/dubai-rail.webp?b=61',
+  './brand/singapore-rail.webp?b=61',
+  './brand/antalya-rail.webp?b=61',
+  './brand/london-rail.webp?b=61',
+  './icons/favicon.svg?b=61',
+  './icons/icon-192.png?b=61',
   './icons/icon-512.png',
-  './icons/apple-touch-icon.png?b=60'
+  './icons/apple-touch-icon.png?b=61'
 ];
 
 self.addEventListener('install', e => {

@@ -206,7 +206,7 @@ function viewToday() {
         const isNowGrp = allDays
           ? m.meeting_date === now.date
           : !!(live && UI.slotOf(live.meeting_time) === key);
-        const label = allDays ? UI.fmtDate(m.meeting_date) : key;
+        const label = allDays ? (m.meeting_date ? UI.fmtDate(m.meeting_date) : 'Date to be confirmed') : key;
         const n = sorted.filter(x => (allDays ? x.meeting_date : UI.slotOf(x.meeting_time)) === key).length;
         html += `<div class="slot-h${isNowGrp ? ' now' : ''}">
           <span class="t">${UI.esc(label)}</span><span class="ln"></span>

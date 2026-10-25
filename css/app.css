@@ -13,6 +13,7 @@
 }
 html[data-city="singapore"] { --city-img: url('../brand/singapore-rail.webp'); --city-pos: 50% 40%; --city-pos-auth: center 30% }
 html[data-city="antalya"] { --city-img: url('../brand/antalya-rail.webp'); --city-pos: center 52%; --city-pos-auth: center 48% }
+html[data-city="london"] { --city-img: url('../brand/london-rail.webp'); --city-pos: center 30%; --city-pos-auth: center 34% }
 :root {
   /* Warm paper, not cool grey. Printed-schedule feel, and it lets the one
      blue accent actually read as a signal instead of blending in. */
