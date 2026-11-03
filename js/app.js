@@ -66,8 +66,8 @@ async function enterApp() {
   /* nothing on your name: open on the whole team rather than an empty list.
      Reps are matched on the meetings they booked, never as an attendee. */
   const meIsRep = S.me?.role === 'rep';
-  const key = meIsRep ? 'rep_id' : 'owner_id';
-  if (!S.meetings.some(m => m[key] === S.me?.user_id)) V.scope = 'team';
+  const uid = S.me?.user_id;
+  if (!S.meetings.some(m => meIsRep ? m.rep_id === uid : (m.owner_id === uid || m.rep_id === uid))) V.scope = 'team';
   renderDayRail(); render(); paintEvent();
   Store.ocrCheck().then(() => { if (V.tab === 'scan' || V.tab === 'me') render(); });
   Store.flush();

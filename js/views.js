@@ -25,7 +25,8 @@ const attendsIt = m => m.owner_id === meId();
 const bookedIt = m => m.rep_id === meId();
 const amRep = () => S.me?.role === 'rep';
 /* "my" means attending for leadership, booked for reps */
-const isMine = m => (amRep() ? bookedIt(m) : attendsIt(m));
+/* salespeople own meetings they attend and meetings they booked themselves */
+const isMine = m => (amRep() ? bookedIt(m) : (attendsIt(m) || bookedIt(m)));
 const myLabel = () => (amRep() ? 'Booked by me' : 'My meetings');
 
 function eventDays() {
@@ -289,7 +290,7 @@ function meetingCard(m) {
               ? `<span class="tag"><span class="statedot ${m.status}"></span>${UI.esc(m.status.replace('_', ' '))}</span>`
               : '')}
           ${lc ? `<span class="tag brand">${I.card}${lc}</span>` : ''}
-          ${own && (V.scope === 'team' || amRep()) ? UI.avatar(own, 'xs') : ''}
+          ${own && (V.scope === 'team' || amRep() || own.user_id !== meId()) ? UI.avatar(own, 'xs') : ''}
         </span>
       </span>
       ${(m.prospect_name || m.designation || facts.length) ? `<span class="sub">
@@ -495,7 +496,7 @@ function viewBoard() {
   /* leaderboard */
   const rows = S.members.map(mem => {
     const isRep = mem.role === 'rep';
-    const mine = mtgs.filter(m => (isRep ? m.rep_id : m.owner_id) === mem.user_id);
+    const mine = mtgs.filter(m => (isRep ? m.rep_id === mem.user_id : (m.owner_id === mem.user_id || m.rep_id === mem.user_id)));
     const cnt = g => mine.filter(m => m.outcome && OUT_MAP[m.outcome]?.grp === g).length;
     return {
       mem, isRep, total: mine.length,
@@ -1509,7 +1510,7 @@ async function doSwitchEvent(id) {
 function openTeam() {
   const body = `<div class="card lb">${S.members.map(m => {
     const isRep = m.role === 'rep';
-    const mine = S.meetings.filter(x => (isRep ? x.rep_id === m.user_id : x.owner_id === m.user_id));
+    const mine = S.meetings.filter(x => (isRep ? x.rep_id === m.user_id : (x.owner_id === m.user_id || x.rep_id === m.user_id)));
     return `<div class="lbrow${m.user_id === meId() ? ' me' : ''}">
       ${UI.avatar(m, 'sm')}
       <span class="who"><span class="n">${UI.esc(m.full_name)}${m.user_id === meId() ? ' · you' : ''}</span>
@@ -1810,7 +1811,7 @@ function teamPane() {
   const mtgs = day ? S.meetings.filter(m => m.meeting_date === day) : S.meetings;
   const rows = S.members.map(mem => {
     const isRep = mem.role === 'rep';
-    const mine = mtgs.filter(m => (isRep ? m.rep_id : m.owner_id) === mem.user_id);
+    const mine = mtgs.filter(m => (isRep ? m.rep_id === mem.user_id : (m.owner_id === mem.user_id || m.rep_id === mem.user_id)));
     const acts = S.activity.filter(a => a.actor_id === mem.user_id);
     return {
       mem, isRep, p: presence(mem),
