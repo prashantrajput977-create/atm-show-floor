@@ -1000,6 +1000,7 @@ function viewMe() {
     <div style="display:flex;flex-direction:column;gap:9px">
       ${Store.isAdmin() ? `<button class="btn block" data-act="console">${I.grid}Open the floor console</button>` : ''}
       <button class="btn block" data-act="addMeeting">${I.plus}Add a walk-in meeting</button>
+      <button class="btn block" data-act="importSheet">${I.upload}Upload meeting sheet</button>
       <button class="btn block" data-act="addEvent">${I.calendar}Create a new event</button>
       <button class="btn block" data-act="export">${I.download}Export to CSV</button>
       ${installed ? '' : `<button class="btn primary block" data-act="install">${I.home}${window.matchMedia('(min-width: 1000px)').matches ? 'Install this app' : 'Add to home screen'}</button>`}

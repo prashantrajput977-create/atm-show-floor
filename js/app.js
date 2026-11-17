@@ -467,6 +467,7 @@ document.addEventListener('click', async e => {
     install: doInstall,
     refresh: () => { toast('Refreshing'); Store.loadAll({ fromCache: false }).then(() => { renderDayRail(); render(); }); },
     export: doExport,
+    importSheet: () => window.Importer ? Importer.open() : toast('Reload the app to get sheet upload', { kind: 'warn' }),
     signout: doSignout,
     attend: async () => {
       const m = S.meetings.find(x => x.id === id);

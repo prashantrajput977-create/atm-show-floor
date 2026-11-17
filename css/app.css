@@ -1854,3 +1854,15 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
 .hx-mail { font-size: 12.5px; overflow-wrap: anywhere }
 .hx-mail.ok { color: var(--ok, #1f7a4d) }
 .hx-mail.no { color: var(--tx-3) }
+
+/* sheet upload preview */
+.im-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(68px, 1fr)); gap: 8px; margin: 2px 0 12px }
+.im-stats span { display: flex; flex-direction: column; padding: 9px 10px; border-radius: var(--r); background: var(--ink-2, #fff); border: 1px solid var(--line); font-size: 11.5px; color: var(--tx-3); text-transform: uppercase; letter-spacing: .04em }
+.im-stats b { font-size: 20px; color: var(--tx); font-family: var(--ff-mono); letter-spacing: 0 }
+.im-list { padding: 2px 13px; margin-bottom: 12px }
+.im-row { display: flex; justify-content: space-between; gap: 10px; padding: 9px 0; font-size: 13.5px }
+.im-row + .im-row { border-top: 1px solid var(--line) }
+.im-row b { font-weight: 600; min-width: 0; overflow-wrap: anywhere }
+.im-row span { color: var(--tx-3); text-align: right; font-size: 12.5px }
+.im-chk { display: flex; gap: 9px; align-items: center; font-size: 14px; margin: 2px 0 6px }
+.im-chk input { width: 18px; height: 18px }
