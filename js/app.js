@@ -67,7 +67,7 @@ async function enterApp() {
      Reps are matched on the meetings they booked, never as an attendee. */
   const meIsRep = S.me?.role === 'rep';
   const uid = S.me?.user_id;
-  if (!S.meetings.some(m => meIsRep ? m.rep_id === uid : (m.owner_id === uid || m.rep_id === uid))) V.scope = 'team';
+  if (!S.meetings.some(m => meIsRep ? m.rep_id === uid : (m.owner_id === uid || m.rep_id === uid || (m.co_owner_ids || []).includes(uid)))) V.scope = 'team';
   renderDayRail(); render(); paintEvent();
   Store.ocrCheck().then(() => { if (V.tab === 'scan' || V.tab === 'me') render(); });
   Store.flush();
@@ -90,7 +90,7 @@ function paintMe() {
 /* the skyline follows the event: Dubai, Singapore, Antalya */
 function setCity(city) {
   const c = String(city || '').toLowerCase();
-  const key = /singapore/.test(c) ? 'singapore' : /antalya/.test(c) ? 'antalya' : /london/.test(c) ? 'london' : 'dubai';
+  const key = /singapore/.test(c) ? 'singapore' : /antalya/.test(c) ? 'antalya' : /london/.test(c) ? 'london' : /lauderdale/.test(c) ? 'fortlauderdale' : 'dubai';
   document.documentElement.dataset.city = key;
   try { localStorage.setItem('sf_city', key); } catch (_) {}
 }

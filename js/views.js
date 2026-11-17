@@ -21,7 +21,7 @@ const meId = () => S.me?.user_id || null;
    owner_id = the person in the room (sheet column "Meeting with")
    rep_id   = the inside-sales rep who booked it (sheet column "IS Rep")
    Reps do not attend, so they must never be counted as attendees. */
-const attendsIt = m => m.owner_id === meId();
+const attendsIt = m => m.owner_id === meId() || (m.co_owner_ids || []).includes(meId());
 const bookedIt = m => m.rep_id === meId();
 const amRep = () => S.me?.role === 'rep';
 /* "my" means attending for leadership, booked for reps */
@@ -237,6 +237,69 @@ function ctxNote(m, cls = '') {
   return c ? `<span class="ctx ${cls}">${I.info}<span>${UI.esc(c)}</span></span>` : '';
 }
 
+/* ---- account context: earlier events + Zoho CRM snapshot ---- */
+function coOwners(m) {
+  return (m.co_owner_ids || []).map(id => UI.memberById(id)).filter(Boolean);
+}
+function crmBadge(m) {
+  const c = m.crm_context;
+  if (!c) return '';
+  const won = (c.deals || []).some(d => d.stage === 'Closed Won');
+  if (won) return 'Customer';
+  const open = (c.deals || []).find(d => !/^Closed|Duplicate/i.test(d.stage || ''));
+  if (open) return 'Deal: ' + open.stage;
+  return '';
+}
+const shortDate = v => {
+  if (!v) return '';
+  const d = new Date(String(v).length <= 10 ? v + 'T00:00:00' : v);
+  return isNaN(d) ? '' : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' });
+};
+function historyBlock(m) {
+  const h = m.history || [];
+  if (!h.length) return '';
+  const items = h.map(x => {
+    const out = x.outcome ? (OUT_MAP[x.outcome]?.label || x.outcome) : (x.status && x.status !== 'scheduled' ? x.status.replace('_', ' ') : 'No outcome logged');
+    const said = [x.notes, x.voice && !x.notes ? x.voice : '', x.next_step ? 'Next: ' + x.next_step : ''].filter(Boolean).join(' · ');
+    return `<div class="hx">
+      <div class="hx-top"><b>${UI.esc(x.event || '')}</b><span>${UI.esc(shortDate(x.date))}</span></div>
+      <div class="hx-sub">${UI.esc([x.prospect, [x.owner, x.rep].filter(Boolean).join(' with ')].filter(Boolean).join(' · '))}</div>
+      <div class="hx-out">${UI.esc(out)}${x.deal_value_usd ? ' · ' + UI.esc(UI.money(x.deal_value_usd)) : ''}</div>
+      ${said ? `<div class="hx-tx">${UI.esc(said)}</div>` : ''}
+      ${x.comments ? `<div class="hx-tx">Sheet note: ${UI.esc(x.comments)}</div>` : ''}
+    </div>`;
+  }).join('');
+  return `<div class="sec-h" style="margin-top:0"><h2>Met before</h2><span class="count">${h.length}</span></div>
+    <div class="card hxcard">${items}</div>`;
+}
+function crmBlock(m) {
+  const c = m.crm_context;
+  if (!c) return '';
+  const parts = [];
+  if (c.account) parts.push(`<div class="hx">
+      <div class="hx-top"><b>${UI.esc(c.account.name)}</b><span>${UI.esc(c.account.state || '')}</span></div>
+      <div class="hx-sub">Owner ${UI.esc(c.account.owner || '—')}${c.account.last_activity ? ' · last activity ' + UI.esc(shortDate(c.account.last_activity)) : ''}</div>
+    </div>`);
+  (c.deals || []).forEach(d => parts.push(`<div class="hx">
+      <div class="hx-top"><b>${UI.esc(d.name || 'Deal')}</b><span>${UI.esc(d.stage || '')}</span></div>
+      <div class="hx-sub">${UI.esc([d.amount ? UI.money(d.amount) : '', d.owner, d.closing ? 'close ' + shortDate(d.closing) : ''].filter(Boolean).join(' · '))}</div>
+      ${d.description ? `<div class="hx-tx">${UI.esc(d.description)}</div>` : ''}
+    </div>`));
+  const auto = n => /visited the website|leadfeeder|dealfront/i.test((n.title || '') + ' ' + (n.text || ''));
+  const visits = (c.notes || []).filter(auto);
+  (c.notes || []).filter(n => !auto(n)).forEach(n => parts.push(`<div class="hx">
+      <div class="hx-top"><b>${UI.esc(n.title || 'Note')}</b><span>${UI.esc(shortDate(n.at))}</span></div>
+      <div class="hx-tx">${UI.esc(n.text || '')}</div>
+      ${n.by ? `<div class="hx-sub">${UI.esc(n.by)}</div>` : ''}
+    </div>`));
+  const wv = c.web_visits || (visits.length ? { count: visits.length, latest: visits[0].at } : null);
+  if (wv) parts.push(`<div class="hx"><div class="hx-sub">${wv.count} website visit${wv.count > 1 ? 's' : ''} tracked · latest ${UI.esc(shortDate(wv.latest))}</div></div>`);
+  const emails = (c.email_checks || []).map(e => `<div class="hx-mail ${e.found ? 'ok' : 'no'}">${UI.esc(e.email)} · ${e.found ? 'in CRM as ' + UI.esc(e.as) + (e.owner ? ', owner ' + UI.esc(e.owner) : '') : 'not in CRM'}</div>`).join('');
+  if (!parts.length && !emails) return `<div class="hint" style="margin:0 2px 14px">Not in Zoho CRM yet.</div>`;
+  return `<div class="sec-h" style="margin-top:0"><h2>From Zoho CRM</h2><span class="count">${UI.esc(c.fetched_at ? 'as of ' + shortDate(c.fetched_at) : '')}</span></div>
+    <div class="card hxcard">${parts.join('') || '<div class="hx"><div class="hx-sub">No account found in CRM for this company.</div></div>'}${emails ? `<div class="hx">${emails}</div>` : ''}</div>`;
+}
+
 function nowCard(m, label) {
   const t = UI.fmtTimeStr(m.meeting_time);
   const own = UI.memberById(m.owner_id), rep = UI.memberById(m.rep_id);
@@ -268,7 +331,9 @@ function meetingCard(m) {
   const facts = [
     m.geo_region,
     m.category ? shortCat(m.category) : '',
-    m.duration_min && m.duration_min !== 30 ? m.duration_min + ' min' : ''
+    m.duration_min && m.duration_min !== 30 ? m.duration_min + ' min' : '',
+    (m.history || []).length ? 'Met at ' + [...new Set(m.history.map(h => h.event))].map(e => String(e).replace(/ 2026$/, '')).join(', ') : '',
+    crmBadge(m)
   ].filter(Boolean);
 
   return `<button class="mtg" data-act="meeting" data-id="${m.id}"
@@ -290,7 +355,7 @@ function meetingCard(m) {
               ? `<span class="tag"><span class="statedot ${m.status}"></span>${UI.esc(m.status.replace('_', ' '))}</span>`
               : '')}
           ${lc ? `<span class="tag brand">${I.card}${lc}</span>` : ''}
-          ${own && (V.scope === 'team' || amRep() || own.user_id !== meId()) ? UI.avatar(own, 'xs') : ''}
+          ${own && (V.scope === 'team' || amRep() || own.user_id !== meId()) ? UI.avatar(own, 'xs') : ''}${coOwners(m).filter(c => c.user_id !== meId()).map(c => UI.avatar(c, 'xs')).join('')}
         </span>
       </span>
       ${(m.prospect_name || m.designation || facts.length) ? `<span class="sub">
@@ -496,7 +561,7 @@ function viewBoard() {
   /* leaderboard */
   const rows = S.members.map(mem => {
     const isRep = mem.role === 'rep';
-    const mine = mtgs.filter(m => (isRep ? m.rep_id === mem.user_id : (m.owner_id === mem.user_id || m.rep_id === mem.user_id)));
+    const mine = mtgs.filter(m => (isRep ? m.rep_id === mem.user_id : (m.owner_id === mem.user_id || m.rep_id === mem.user_id || (m.co_owner_ids || []).includes(mem.user_id))));
     const cnt = g => mine.filter(m => m.outcome && OUT_MAP[m.outcome]?.grp === g).length;
     return {
       mem, isRep, total: mine.length,
@@ -991,6 +1056,9 @@ function openMeeting(id) {
       <span class="cv">${UI.esc(m.comments)}</span>
     </div>` : ''}
 
+    ${historyBlock(m)}
+    ${crmBlock(m)}
+
     <div class="sec-h" style="margin-top:0"><h2>Did they turn up?</h2></div>
     <div class="attrow">
       ${ATTEND.map(a => `<button data-act="attend" data-id="${m.id}" data-v="${a.v}"
@@ -1017,7 +1085,7 @@ function openMeeting(id) {
                     <button class="iconbtn" data-act="copy" data-v="${UI.esc(m.mobile)}" aria-label="Copy">${I.copy}</button>` : '')}
       ${row('globe', 'Domain', m.domain ? UI.esc(m.domain) : '')}
       ${row('pin', 'Where', m.location ? UI.esc(m.location) : '')}
-      ${row('users', 'On our side', `${own ? UI.esc(own.short_name) : UI.esc(m.owner_name || '—')}${rep && rep.user_id !== own?.user_id ? ' with ' + UI.esc(rep.short_name) : (m.rep_name && m.rep_name !== m.owner_name ? ' with ' + UI.esc(m.rep_name) : '')}`)}
+      ${row('users', 'On our side', `${[own ? own.short_name : (m.owner_name || '—'), ...coOwners(m).map(c => c.short_name)].map(UI.esc).join(' & ')}${rep && rep.user_id !== own?.user_id ? ' with ' + UI.esc(rep.short_name) : (m.rep_name && m.rep_name !== m.owner_name ? ' with ' + UI.esc(m.rep_name) : '')}`)}
       ${row('note', 'Outcome notes', m.outcome_notes ? UI.esc(m.outcome_notes) : '')}
       ${row('arrowRight', 'Next step', m.next_step ? UI.esc(m.next_step) + (m.next_step_due ? ` <span class="mono" style="color:var(--tx-3)">${UI.esc(m.next_step_due)}</span>` : '') : '')}
       ${row('dollar', 'Deal value', m.deal_value_usd ? UI.esc(UI.money(m.deal_value_usd)) : '')}
@@ -1510,7 +1578,7 @@ async function doSwitchEvent(id) {
 function openTeam() {
   const body = `<div class="card lb">${S.members.map(m => {
     const isRep = m.role === 'rep';
-    const mine = S.meetings.filter(x => (isRep ? x.rep_id === m.user_id : (x.owner_id === m.user_id || x.rep_id === m.user_id)));
+    const mine = S.meetings.filter(x => (isRep ? x.rep_id === m.user_id : (x.owner_id === m.user_id || x.rep_id === m.user_id || (x.co_owner_ids || []).includes(m.user_id))));
     return `<div class="lbrow${m.user_id === meId() ? ' me' : ''}">
       ${UI.avatar(m, 'sm')}
       <span class="who"><span class="n">${UI.esc(m.full_name)}${m.user_id === meId() ? ' · you' : ''}</span>
@@ -1811,7 +1879,7 @@ function teamPane() {
   const mtgs = day ? S.meetings.filter(m => m.meeting_date === day) : S.meetings;
   const rows = S.members.map(mem => {
     const isRep = mem.role === 'rep';
-    const mine = mtgs.filter(m => (isRep ? m.rep_id === mem.user_id : (m.owner_id === mem.user_id || m.rep_id === mem.user_id)));
+    const mine = mtgs.filter(m => (isRep ? m.rep_id === mem.user_id : (m.owner_id === mem.user_id || m.rep_id === mem.user_id || (m.co_owner_ids || []).includes(mem.user_id))));
     const acts = S.activity.filter(a => a.actor_id === mem.user_id);
     return {
       mem, isRep, p: presence(mem),

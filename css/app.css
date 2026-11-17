@@ -13,6 +13,7 @@
 }
 html[data-city="singapore"] { --city-img: url('../brand/singapore-rail.webp'); --city-pos: 50% 40%; --city-pos-auth: center 30% }
 html[data-city="antalya"] { --city-img: url('../brand/antalya-rail.webp'); --city-pos: center 52%; --city-pos-auth: center 48% }
+html[data-city="fortlauderdale"] { --city-img: url('../brand/fortlauderdale-rail.webp'); --city-pos: center 45%; --city-pos-auth: center 42% }
 html[data-city="london"] { --city-img: url('../brand/london-rail.webp'); --city-pos: center 30%; --city-pos-auth: center 34% }
 :root {
   /* Warm paper, not cool grey. Printed-schedule feel, and it lets the one
@@ -1838,3 +1839,18 @@ textarea.input { height: auto; min-height: 84px; padding: 11px 13px; line-height
 .camwrap.plain .camguide { display: none; }
 /* keep the frame from collapsing while the photo loads */
 .selfie img[data-selfie] { min-height: 180px; }
+
+/* account context: earlier events and CRM */
+.hxcard { padding: 2px 13px; margin-bottom: 16px }
+.hx { padding: 10px 0; display: flex; flex-direction: column; gap: 3px }
+.hx + .hx { border-top: 1px solid var(--line) }
+.hx-top { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; font-size: 14px }
+.hx-top b { font-weight: 700; min-width: 0; overflow-wrap: anywhere }
+.hx-top span { flex: none; font-family: var(--ff-mono); font-size: 11.5px; color: var(--tx-3) }
+.hx-sub { font-size: 12.5px; color: var(--tx-3) }
+.hx-out { font-size: 13px; font-weight: 600 }
+.hx-tx { font-size: 13px; line-height: 1.4; color: var(--tx-2, var(--tx)); overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden }
+.hx-mail { font-size: 12.5px; overflow-wrap: anywhere }
+.hx-mail.ok { color: var(--ok, #1f7a4d) }
+.hx-mail.no { color: var(--tx-3) }
